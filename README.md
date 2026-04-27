@@ -43,23 +43,21 @@ cargo truce install --aax        # AAX (requires AAX SDK)
 cargo truce validate             # auval + pluginval + clap-validator on installed plugins
 ```
 
-Refer to (docs/formats)[docs/formats] on setting up AU and AAX builds as they need additional env vars.
-
 Build without installing:
 
 ```sh
 cargo truce build                # bundle all formats into target/bundles/ without installing
 cargo truce build --clap --vst3  # subset of formats
-cargo truce build --hot-reload          # hot-reload shell build (see docs/reference/hot-reload.md)
+cargo truce build --shell        # hot-reload shell build (see docs/reference/hot-reload.md)
 
 cargo truce run                  # launch the plugin standalone (no DAW)
 cargo truce run -p my-plugin     # standalone for a specific crate
 cargo truce test                 # run tests
 cargo truce screenshot           # render every plugin's GUI to target/screenshots/
 cargo truce screenshot -p my-plugin --name dark   # one plugin, custom filename
+
 cargo truce package              # signed .pkg (macOS) or Inno Setup .exe (Windows)
                                  # → target/dist/<Plugin>-<version>-<platform>.{pkg,exe}
-
 cargo truce package -p my-plugin --formats clap,vst3,aax   # subset
 cargo truce package --no-sign                              # dev builds, skip signing
 cargo truce clean                # cargo clean, preserving target/dist/ installers
