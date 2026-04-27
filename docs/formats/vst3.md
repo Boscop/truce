@@ -35,11 +35,13 @@ implementation with MIT licensing.
 
 ## Install paths
 
-| Platform | Path |
-|----------|------|
-| macOS | `/Library/Audio/Plug-Ins/VST3/{Name}.vst3/` (system-wide, **sudo required**) |
-| Windows | `%COMMONPROGRAMFILES%\VST3\{Name}.vst3\` (admin) |
-| Linux | `~/.vst3/{Name}.vst3/` (user-scope) |
+User-scope by default; pass `--system` for the system-wide path.
+
+| Platform | User (default) | System (`--system`) |
+|----------|----------------|---------------------|
+| macOS    | `~/Library/Audio/Plug-Ins/VST3/{Name}.vst3/` | `/Library/Audio/Plug-Ins/VST3/{Name}.vst3/` (sudo) |
+| Windows  | `%LOCALAPPDATA%\Programs\Common\VST3\{Name}.vst3\` | `%COMMONPROGRAMFILES%\VST3\{Name}.vst3\` (admin) |
+| Linux    | `~/.vst3/{Name}.vst3/` | same (Linux is user-only) |
 
 The `.vst3` on disk is a real bundle directory with a proper `Contents/`
 hierarchy:
@@ -53,9 +55,9 @@ hierarchy:
 ```
 
 `cargo truce install` builds the bundle and signs the binary for
-macOS. On Windows, `cargo truce install` must run from an
-Administrator prompt. On Linux, the bundle is written to the user's
-home — no elevation needed.
+macOS. The user-scope default writes to your home directory with no
+elevation; pass `--system` to land in the system-wide directory
+(sudo on macOS, Administrator shell on Windows).
 
 ## Signing
 
@@ -102,13 +104,12 @@ I/O, silent-input behavior, real-time safety heuristics.
 - **Class ID (`vst3_id`)** in `truce.toml` (auto-derived from
   vendor + plugin bundle_id if not set) must not change after release.
   VST3 hosts key automation and presets on it.
-- **macOS VST3 install is system-wide** and requires `sudo`.
-  This is a Steinberg convention — hosts scan `/Library/Audio/Plug-
-  Ins/VST3` but not the per-user equivalent by default.
-- **Windows admin prompt**: `%COMMONPROGRAMFILES%\VST3` is system-wide.
-  Run your shell as Administrator before `cargo truce install`, or
-  use `cargo truce package` to produce an installer users can run
-  with UAC consent.
+- **System-scope install needs elevation.** macOS:
+  `/Library/Audio/Plug-Ins/VST3/` requires `sudo`. Windows:
+  `%COMMONPROGRAMFILES%\VST3\` requires an Administrator shell.
+  The user-scope default (no flag, or `--user`) writes to
+  `~/Library/...` / `%LOCALAPPDATA%\...` and skips elevation —
+  every modern VST3 host scans both roots.
 - **IRunLoop on Linux**: Reaper doesn't require the VST3 IRunLoop
   timer integration; Bitwig and Ardour on Linux may. Not yet
   verified — a known-possible risk for those hosts on Linux.

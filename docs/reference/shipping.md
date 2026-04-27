@@ -49,20 +49,41 @@ cargo truce install                    # every format in your default features
 cargo truce install --clap             # just CLAP
 cargo truce install --no-build         # install the existing bundles, skip rebuild
 cargo truce install -p my-gain         # single plugin in a workspace (cargo crate name)
+cargo truce install --user             # per-user paths (default — no sudo / admin)
+cargo truce install --system           # system-wide paths (sudo on macOS, admin on Windows)
 ```
 
 Builds, bundles, codesigns on macOS, and writes into the standard
-plugin directories on your machine:
+plugin directories on your machine. **User-scope is the default on
+every platform** — the dev loop doesn't prompt for a password.
 
-- **macOS** user-scope for CLAP (`~/Library/Audio/Plug-Ins/CLAP/`),
-  system-wide for everything else (`/Library/Audio/Plug-Ins/...` →
-  `sudo`).
-- **Windows** system-wide for all formats
-  (`%COMMONPROGRAMFILES%\...`) — run from an Administrator prompt.
-- **Linux** user-scope for everything (`~/.clap`, `~/.vst3`,
-  `~/.vst`, `~/.lv2`) — no `sudo`.
+- **macOS user (default):** `~/Library/Audio/Plug-Ins/{CLAP,VST3,
+  Components,VST,LV2}/`. No `sudo`.
+- **macOS system (`--system`):** `/Library/Audio/Plug-Ins/...`.
+  Prompts for `sudo` once per run.
+- **Windows user (default):** `%LOCALAPPDATA%\Programs\Common\
+  {CLAP,VST3}\`, `%APPDATA%\LV2\`. No Administrator shell needed.
+- **Windows system (`--system`):** `%COMMONPROGRAMFILES%\...`.
+  Run from an Administrator prompt.
+- **Linux:** `~/.clap`, `~/.vst3`, `~/.vst`, `~/.lv2`. The Linux
+  scope flags are accepted for symmetry with macOS / Windows but
+  resolve to the same paths every host already scans.
+
+AAX and AU v3 are always system-scope (Pro Tools / pluginkit only
+scan the system root); `--user` for those formats falls back to
+the system path with a one-line `note: ... is system-only`.
+Windows VST2 is also system-only on Windows. Project-wide default:
+set `[install] default_scope = "user" | "system" | "ask"` in
+`truce.toml`.
 
 Full per-platform table in [formats/README.md](../formats/).
+
+`cargo truce remove` mirrors the same flags. By default it scans
+both scopes (handy when you switched scope mid-iteration); pass
+`--user` / `--system` to limit. `cargo truce doctor` prints both
+paths per format with a writable / sudo / not-present marker, and
+`cargo truce validate` warns when the same plugin name is
+installed in both scopes (hosts pick one and shadow the other).
 
 ## `build`
 
@@ -115,11 +136,44 @@ cargo truce package --host-only              # skip the cross-arch build (dev it
 cargo truce package --no-sign                # skip signing (dev)
 cargo truce package --no-notarize            # macOS: sign but skip Apple notarization
 cargo truce package --no-installer           # Windows: stage files, skip ISCC
+cargo truce package --ask                    # end user picks scope at install time (default)
+cargo truce package --user                   # hard-locked user-scope installer
+cargo truce package --system                 # hard-locked system-scope installer
 ```
 
-Output: `target/dist/<Name>-<version>-{macos.pkg,windows.exe}`. Version
-comes from `[workspace.package] version` or `[package] version`
-in `Cargo.toml`.
+Output: `target/dist/<Name>-<version>-{macos.pkg,windows.exe}`,
+optionally suffixed with `-user` / `-system` when the scope is
+hard-locked so a `--user` and `--system` build of the same plugin
+don't overwrite each other in `dist/`. Version comes from
+`[workspace.package] version` or `[package] version` in
+`Cargo.toml`.
+
+### Scope (`--ask` / `--user` / `--system`)
+
+`--ask` (the default) lets the end user pick at install time:
+
+- **macOS:** `Installer.app` shows a "Destination Select" page with
+  "Install for me only" pre-selected; "Install for all users"
+  triggers the standard auth prompt.
+- **Windows:** Inno Setup shows a "Choose installation mode" page
+  with "Install for me only" / "Install for all users". The wizard
+  relaunches itself elevated only if the user picks all-users.
+
+`--user` and `--system` hard-lock the choice — useful for IT-
+managed studios that always want one scope, or a plugin author who
+needs to ship a user-only or system-only build separately. Set the
+project-wide default with `[install] default_scope = "user" |
+"system" | "ask"` in `truce.toml`; the CLI flag wins when both
+are set.
+
+System-only formats (AAX, AU v3, Windows VST2) stay in the
+package under every scope. In `--user` mode they print a one-line
+note in the `cargo truce package` log and the resulting installer
+still drops them in the system path (one admin / sudo prompt at
+install time on Windows; on macOS the installer widens to
+`localSystem` when AAX or AU v3 is present, so the whole pkg
+lands at `/Library/...` — drop those formats with `--formats
+clap,vst3,...` if you need a pure no-sudo macOS pkg).
 
 **Defaults to universal.** macOS bundles are `lipo`'d fat Mach-O
 (`x86_64` + `aarch64`). Windows installers carry both `x64` and
@@ -168,7 +222,7 @@ SDK (both Apple archs ship in the SDK).
 ### Windows flow
 
 ```
-cargo truce package (on Windows, Admin prompt)
+cargo truce package (on Windows)
     ↓
 1. Build each format × arch    (x86_64-pc-windows-msvc + aarch64-pc-windows-msvc)
 2. Stage into target\package\  (VST3/AAX bundles carry both archs in arch subdirs;
@@ -463,6 +517,12 @@ Three credential sources, tried in order; first wins.
 | `formats` | plugin's default features | Formats to include when packaging. Valid: `clap`, `vst3`, `vst2`, `lv2`, `au2`, `au3`, `aax`. `--formats` on the CLI overrides. |
 | `welcome_html` | — | **macOS only** — welcome screen HTML in the `.pkg`. |
 | `license_html` | — | **macOS only** — licence HTML in the `.pkg`. |
+
+### `[install]` — optional
+
+| Field | Default | Notes |
+|-------|---------|-------|
+| `default_scope` | OS default (user for `install`, ask for `package`) | Project-wide default for `cargo truce install` and `cargo truce package`. Accepts `"user"`, `"system"`, or `"ask"`. CLI flags (`--user` / `--system` / `--ask`) override. `"ask"` resolves to `user` for `install` (no end user to prompt) and to `ask` for `package`. |
 
 ### Environment variables
 

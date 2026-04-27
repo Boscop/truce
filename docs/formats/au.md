@@ -67,10 +67,15 @@ ad-hoc and works with `-`.
 
 ## Install paths
 
-| Format | Path (system-wide, **sudo required**) |
-|--------|----------------------------------------|
-| AU v2 | `/Library/Audio/Plug-Ins/Components/{Name}.component/` |
-| AU v3 | `/Applications/{Name}.app/Contents/PlugIns/AUExt.appex/` |
+| Format | User (default for AU v2) | System (`--system`) |
+|--------|--------------------------|---------------------|
+| AU v2 | `~/Library/Audio/Plug-Ins/Components/{Name}.component/` | `/Library/Audio/Plug-Ins/Components/{Name}.component/` (sudo) |
+| AU v3 | system† | `/Applications/{Name}.app/Contents/PlugIns/AUExt.appex/` (sudo) |
+
+`†` = `--user` falls back to system silently. `pkd` registration
+of `~/Applications/...` is unreliable on macOS ≤ 13, so AU v3 is
+treated as system-only. `cargo truce install --user --au3` lands
+at `/Applications/...` with a one-line note.
 
 The AU v3 appex is embedded inside a container `.app` at
 `/Applications/`. Apple requires this — App Extensions cannot ship
@@ -166,9 +171,11 @@ parameters don't sync.
 - **AU v3 ad-hoc signing is rejected.** The install path refuses
   `-` and prints a clear message. AU v2 is lenient and works
   ad-hoc.
-- **System-wide install requires sudo.** Both AU v2 and v3 install
-  under `/Library` / `/Applications` which need elevation. `cargo
-  truce install` will prompt.
+- **AU v3 always installs to `/Applications/`** (system-wide,
+  needs sudo). `cargo truce install --user --au3` falls back with
+  a one-line note. AU v2 honors `--user` (default) and writes to
+  `~/Library/Audio/Plug-Ins/Components/` with no sudo; pass
+  `--system` for the system path.
 - **Host caches are sticky.** If a plugin appears broken after
   changing IDs or reinstalling, `cargo truce reset-au` flushes the AU
   caches and restarts `pkd` / `AudioComponentRegistrar` (use

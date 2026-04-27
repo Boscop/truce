@@ -59,18 +59,21 @@ No Steinberg SDK required.
 
 ## Install paths
 
-| Platform | Path |
-|----------|------|
-| macOS | `~/Library/Audio/VST/{Name}.dylib` |
-| Windows | `%PROGRAMFILES%\Steinberg\VstPlugins\{Name}.dll` (admin) |
-| Linux | `~/.vst/{Name}.so` |
+| Platform | User (default) | System (`--system`) |
+|----------|----------------|---------------------|
+| macOS    | `~/Library/Audio/Plug-Ins/VST/{Name}.vst/` | `/Library/Audio/Plug-Ins/VST/{Name}.vst/` (sudo) |
+| Windows  | system† | `%PROGRAMFILES%\Steinberg\VstPlugins\{Name}.dll` (admin) |
+| Linux    | `~/.vst/{Name}.so` | same (Linux is user-only) |
 
-On Windows the default Steinberg `VstPlugins` path is what Reaper
-and most hosts scan out of the box. It's under `Program Files`, so
-`cargo truce install --vst2` requires an Administrator prompt.
+`†` = `--user` falls back to system silently. Windows VST2 has no
+agreed-upon per-user path that every host scans, so
+`cargo truce install --user --vst2` lands at
+`%PROGRAMFILES%\Steinberg\VstPlugins\` (Administrator shell
+required) and prints a one-line note.
 
-Unlike VST3, VST2 has no bundle hierarchy — a single shared library
-file is the plugin.
+Unlike VST3, VST2 has no bundle hierarchy on Windows / Linux — a
+single shared library file is the plugin. On macOS we wrap the
+dylib in a `.vst` bundle with `Contents/MacOS/`.
 
 ## Signing
 

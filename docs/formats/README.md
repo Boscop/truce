@@ -50,20 +50,29 @@ aax  = ["dep:truce-aax"]
 
 ## Quick-reference: install destinations
 
-| Format | macOS | Windows | Linux |
-|--------|-------|---------|-------|
-| CLAP   | `~/Library/Audio/Plug-Ins/CLAP/{Name}.clap` | `%COMMONPROGRAMFILES%\CLAP\{Name}.clap` | `~/.clap/{Name}.clap` |
-| VST3   | `/Library/Audio/Plug-Ins/VST3/{Name}.vst3/` (sudo) | `%COMMONPROGRAMFILES%\VST3\{Name}.vst3\` | `~/.vst3/{Name}.vst3/` |
-| VST2   | `~/Library/Audio/VST/{Name}.dylib` | `%PROGRAMFILES%\Steinberg\VstPlugins\{Name}.dll` | `~/.vst/{Name}.so` |
-| LV2    | `~/Library/Audio/Plug-Ins/LV2/{Name}.lv2/` | `%APPDATA%\LV2\{Name}.lv2\` | `~/.lv2/{Name}.lv2/` |
-| AU v2  | `/Library/Audio/Plug-Ins/Components/{Name}.component/` (sudo) | — | — |
-| AU v3  | `/Applications/{Name}.app/Contents/PlugIns/AUExt.appex/` (sudo) | — | — |
-| AAX    | `/Library/Application Support/Avid/Audio/Plug-Ins/{Name}.aaxplugin/` (sudo) | `%COMMONPROGRAMFILES%\Avid\Audio\Plug-Ins\{Name}.aaxplugin\` | — |
-| Standalone | `target/bundles/{Name}.standalone/` (staged by `cargo truce run`; not installed) | same | same |
+`cargo truce install` defaults to **per-user** paths on every
+platform. Pass `--system` to install into the system-wide
+directories (sudo on macOS, Administrator shell on Windows). AAX,
+AU v3, and Windows VST2 are always system-only — `--user` for
+those formats falls back to the system path with a one-line note.
+`†` = `--user` falls back to system silently.
+
+| Format | macOS user | macOS system | Windows user | Windows system | Linux |
+|--------|-----------|--------------|--------------|----------------|-------|
+| CLAP   | `~/Library/Audio/Plug-Ins/CLAP/{Name}.clap` | `/Library/Audio/Plug-Ins/CLAP/{Name}.clap` | `%LOCALAPPDATA%\Programs\Common\CLAP\{Name}.clap` | `%COMMONPROGRAMFILES%\CLAP\{Name}.clap` | `~/.clap/{Name}.clap` |
+| VST3   | `~/Library/Audio/Plug-Ins/VST3/{Name}.vst3/` | `/Library/Audio/Plug-Ins/VST3/{Name}.vst3/` | `%LOCALAPPDATA%\Programs\Common\VST3\{Name}.vst3\` | `%COMMONPROGRAMFILES%\VST3\{Name}.vst3\` | `~/.vst3/{Name}.vst3/` |
+| VST2   | `~/Library/Audio/Plug-Ins/VST/{Name}.vst/` | `/Library/Audio/Plug-Ins/VST/{Name}.vst/` | system† | `%PROGRAMFILES%\Steinberg\VstPlugins\{Name}.dll` | `~/.vst/{Name}.so` |
+| LV2    | `~/Library/Audio/Plug-Ins/LV2/{Name}.lv2/` | `/Library/Audio/Plug-Ins/LV2/{Name}.lv2/` | `%APPDATA%\LV2\{Name}.lv2\` | `%COMMONPROGRAMFILES%\LV2\{Name}.lv2\` | `~/.lv2/{Name}.lv2/` |
+| AU v2  | `~/Library/Audio/Plug-Ins/Components/{Name}.component/` | `/Library/Audio/Plug-Ins/Components/{Name}.component/` | — | — | — |
+| AU v3  | system† (see note) | `/Applications/{Name}.app/Contents/PlugIns/AUExt.appex/` | — | — | — |
+| AAX    | system† | `/Library/Application Support/Avid/Audio/Plug-Ins/{Name}.aaxplugin/` | system† | `%COMMONPROGRAMFILES%\Avid\Audio\Plug-Ins\{Name}.aaxplugin\` | — |
+| Standalone | `target/bundles/{Name}.standalone/` (staged by `cargo truce run`; not installed) | same | same | same | same |
 
 Commands documented in each format's page use `cargo truce install` so
 you never touch these paths directly. They're listed here as a debug
-aid if plugins aren't being picked up by your DAW.
+aid if plugins aren't being picked up by your DAW. `cargo truce
+doctor` prints both scopes side-by-side with a writable / sudo /
+not-present marker.
 
 ## See also
 

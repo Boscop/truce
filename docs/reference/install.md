@@ -40,11 +40,13 @@ Visual Studio 2019+ with the **"Desktop development with C++"**
 workload. Pick ARM64 / C++ / Windows SDK components too if you want
 dual-arch installers.
 
-Plugin directories (`C:\Program Files\Common Files\...`, Steinberg
-VST2 folder, Avid AAX folder) are system-wide, so
-`cargo truce install` has to run from an **Administrator** command
-prompt. Use the "Developer PowerShell for VS" shell and right-click
-→ Run as Administrator.
+`cargo truce install` defaults to **user-scope**
+(`%LOCALAPPDATA%\Programs\Common\CLAP\`,
+`%LOCALAPPDATA%\Programs\Common\VST3\`) — no Administrator prompt
+needed for the dev loop. Pass `--system` to install into
+`%COMMONPROGRAMFILES%\...` instead (run from an Administrator
+shell). AAX and Windows VST2 are always system-only; `cargo truce
+install --aax` / `--vst2` will need an Administrator shell.
 
 WSL users: install Rust on Windows itself, not inside WSL. Plugin
 hosts are Windows apps and can't load ELF binaries from WSL paths.

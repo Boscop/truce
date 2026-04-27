@@ -35,14 +35,13 @@ cargo truce install --lv2
 
 ## Install paths
 
-| Platform | Path |
-|----------|------|
-| Linux | `~/.lv2/{slug}.lv2/` |
-| macOS | `~/Library/Audio/Plug-Ins/LV2/{slug}.lv2/` |
-| Windows | `%APPDATA%\LV2\{slug}.lv2\` |
+User-scope by default; pass `--system` for the system-wide path.
 
-All three are **user-scope** — no admin / sudo needed on any
-platform.
+| Platform | User (default) | System (`--system`) |
+|----------|----------------|---------------------|
+| Linux    | `~/.lv2/{slug}.lv2/` | same (Linux is user-only) |
+| macOS    | `~/Library/Audio/Plug-Ins/LV2/{slug}.lv2/` | `/Library/Audio/Plug-Ins/LV2/{slug}.lv2/` (sudo) |
+| Windows  | `%APPDATA%\LV2\{slug}.lv2\` | `%COMMONPROGRAMFILES%\LV2\{slug}.lv2\` (admin) |
 
 `{slug}` is the plugin name lowercased with hyphens (e.g. "Truce
 Gain" → `truce-gain`). The slug lives in the bundle directory name,

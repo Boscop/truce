@@ -181,13 +181,19 @@ cargo truce install
 ```
 
 This builds the crate, bundles each enabled format, codesigns on
-macOS, and drops bundles into the user- or system-scope plugin
-directories for your OS. You should see something like:
+macOS, and drops bundles into your **per-user** plug-in directories.
+You should see something like:
 
 ```
 CLAP: ~/Library/Audio/Plug-Ins/CLAP/My Gain.clap
-VST3: /Library/Audio/Plug-Ins/VST3/My Gain.vst3
+VST3: ~/Library/Audio/Plug-Ins/VST3/My Gain.vst3
 ```
+
+No `sudo` / Administrator prompt — user-scope is the default on
+every platform. Pass `--system` to install into the system-wide
+plug-in directories (`/Library/Audio/Plug-Ins/...` on macOS,
+`%COMMONPROGRAMFILES%\...` on Windows), which prompts for sudo /
+admin once per run.
 
 Defaults to the cargo release profile — installing usually means
 audio-testing in a DAW, where debug-build DSP can CPU-spike under
@@ -199,6 +205,7 @@ Explicit format selection works too:
 ```sh
 cargo truce install --clap
 cargo truce install --vst3 --lv2
+cargo truce install --system          # system-scope install (sudo / admin)
 ```
 
 Install destinations per platform live in

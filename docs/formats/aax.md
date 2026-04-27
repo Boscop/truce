@@ -103,6 +103,10 @@ doesn't.
 
 ## Install paths
 
+AAX is always **system-only** — Pro Tools' loader scans only the
+system root on every platform. `cargo truce install --user --aax`
+falls back to system silently with a one-line note.
+
 | Platform | Path (system-wide, **sudo / admin required**) |
 |----------|-----------------------------------------------|
 | macOS | `/Library/Application Support/Avid/Audio/Plug-Ins/{Name}.aaxplugin/` |

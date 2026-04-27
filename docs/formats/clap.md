@@ -26,16 +26,15 @@ clap = ["dep:truce-clap", "dep:clap-sys"]
 
 ## Install paths
 
-User-scope on all three platforms — no admin / sudo needed:
+User-scope by default on every platform — no admin / sudo
+needed. Pass `--system` to `cargo truce install` for the
+system-wide path (sudo on macOS, Administrator on Windows).
 
-| Platform | Path |
-|----------|------|
-| macOS | `~/Library/Audio/Plug-Ins/CLAP/{Name}.clap` |
-| Windows | `%COMMONPROGRAMFILES%\CLAP\{Name}.clap` (admin) |
-| Linux | `~/.clap/{Name}.clap` |
-
-Windows writes under `Common Files`, which does need an Administrator
-prompt; macOS and Linux write user-scope.
+| Platform | User (default) | System (`--system`) |
+|----------|----------------|---------------------|
+| macOS    | `~/Library/Audio/Plug-Ins/CLAP/{Name}.clap` | `/Library/Audio/Plug-Ins/CLAP/{Name}.clap` (sudo) |
+| Windows  | `%LOCALAPPDATA%\Programs\Common\CLAP\{Name}.clap` | `%COMMONPROGRAMFILES%\CLAP\{Name}.clap` (admin) |
+| Linux    | `~/.clap/{Name}.clap` | same (Linux is user-only) |
 
 On every platform the `.clap` bundle is just the built cdylib
 renamed with a `.clap` extension. No `Contents/` hierarchy, no
