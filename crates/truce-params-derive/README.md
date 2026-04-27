@@ -12,17 +12,21 @@ re-exported through `truce::prelude`.
 
 ## Why a separate crate (vs. `truce-derive`)
 
-Both proc-macro crates expose derives, but they're kept separate so the
-heavier `truce-derive` deps don't bleed into consumers that only need
-the parameter macros:
+Mostly **separation of concerns** — this crate covers parameter
+struct boilerplate, `truce-derive` covers plugin metadata
+(`plugin_info!()`). Different axes of plugin authoring.
 
-- **Lighter deps.** This crate is pure `syn` + `quote` + `proc-macro2`.
-  `truce-derive` adds `toml` + `serde` because `plugin_info!()` reads
-  `truce.toml` at compile time. Splitting keeps the cheap macro cheap.
-- **Additional consumer.** `truce-loader` also depends on this crate
-  directly (it derives `Params` for its internal types). Merging into
-  `truce-derive` would force the toml/serde compile cost into the
-  loader's graph.
+The deps differ (this crate stays pure `syn` + `quote` +
+`proc-macro2`; `truce-derive` adds `toml` + `serde`), but in practice
+every plugin uses both `#[derive(Params)]` and `plugin_info!()`, so
+the heavier compile cost is universal regardless of split.
+
+Could be merged into a single `truce-derive` carrying all four
+derives + `plugin_info!()`. Costs: every plugin's `Cargo.toml` would
+need to swap the direct `truce-params-derive` dep for `truce-derive`,
+and `truce-loader`'s dev-dep (used in two test files for
+`#[derive(Params)]` fixtures) would also rename. Today's split is the
+status quo, not a hard technical requirement.
 
 ## Macros
 
