@@ -6,7 +6,6 @@ pub(crate) mod clean;
 pub(crate) mod doctor;
 pub(crate) mod install;
 pub(crate) mod log_stream_au;
-pub(crate) mod new;
 pub(crate) mod package;
 pub(crate) mod remove;
 pub(crate) mod reset_aax;

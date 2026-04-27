@@ -64,13 +64,15 @@ fn print_help() {
         "\
 cargo-truce — build tool for truce audio plugins
 
-USAGE:
-  cargo truce new <name> [--instrument] [--midi] [--no-standalone]
+Usage: cargo truce <command> [options]
+
+Scaffold:
+  new <name> [--instrument] [--midi] [--no-standalone]
       Scaffold a new single-plugin project. Defaults include the
       `standalone` feature + `src/main.rs` host; pass --no-standalone
       to skip those (saves the bin entry, the dep, and the file).
 
-  cargo truce new-workspace <name> <plugin1> [plugin2 ...] [options]
+  new-workspace <name> <plugin1> [plugin2 ...] [options]
       Scaffold a workspace with multiple plugins.
       Options:
         --vendor <name>             Vendor display name
@@ -80,69 +82,167 @@ USAGE:
         --no-standalone             Skip the standalone feature + host bin in every plugin
         --type:<plugin>=<kind>      Per-plugin type override (effect, instrument, midi)
 
-  cargo truce install [--clap] [--vst3] [--vst2] [--au2] [--au3] [--aax]
-                      [--user|--system] [--debug] [-p <crate>]
-      Build, bundle, sign, and install plugins. Defaults to the cargo
-      release profile (avoids DAW CPU spikes from debug-build DSP);
-      pass `--debug` for fast-compile iteration. Per-user install is
-      the default — pass `--system` to install for all users (sudo /
-      admin required). AAX and AU v3 are always system-scope.
+Build / Install / Package:
+  install [--clap] [--vst3] [--vst2] [--au2] [--au3] [--aax] [--user|--system] [--hot-reload] [--debug] [--no-build] [-p <crate>]
+      Build and install plugins into the host's plug-in directories.
+      Defaults to release because installing usually means audio-
+      testing in a DAW — release avoids surprise CPU spikes from
+      debug-build DSP under load. This differs from `cargo build`'s
+      debug default; pass `--debug` to opt back into the cargo dev
+      profile (faster compile, slower DSP — fine for light plugins
+      and wiring checks).
 
-  cargo truce build [--clap] [--vst3] [--vst2] [--lv2] [--au2] [--au3]
-                    [--aax] [-p <crate>] [--hot-reload] [--debug]
-      Build signed per-format bundles into target/bundles/ without
-      installing. No format flags → every format in the project's
-      default features. Pass `--debug` for the cargo dev profile.
+      Defaults to whichever formats are in the plugin's Cargo.toml
+      default features (typically clap + vst3). VST2, AU, and AAX are
+      opt-in and must be enabled explicitly via these flags or by
+      adding them to the plugin's default features.
 
-  cargo truce validate [--auval] [--auval3] [--pluginval] [--clap]
-                       [--vst2] [--all] [-p <crate>]
-      Run plugin validators against installed bundles. No flags → run
-      all available (auval, auval3, pluginval, clap-validator, vst2);
-      missing tools are skipped with a hint. `--vst2` runs an in-tree
-      `dlopen` + AEffect probe (macOS-only smoke binary; VST2 has no
-      industry-standard validator).
+      Per-format scope is per-user by default on every platform; pass
+      `--system` to install into the shared system directories (sudo
+      / admin required). AAX and AU v3 are always system-scope, and
+      `--user` for these formats falls back silently with a one-line
+      note.
+      --clap         CLAP only (no sudo)
+      --vst3         VST3 only
+      --vst2         VST2 only (legacy format — see truce/Cargo.toml note)
+      --au2          AU v2 only (.component, macOS only)
+      --au3          AU v3 only (.appex, requires Xcode, macOS only)
+      --aax          AAX only (requires pre-built template)
+      --user         Install into the per-user directories (default).
+                     No sudo / admin needed for CLAP, VST3, VST2 (macOS),
+                     LV2, and AU v2.
+      --system       Install into the system-wide directories. Requires
+                     sudo on macOS, admin on Windows.
+      --hot-reload   Build hot-reload shells (use with cargo watch for iteration)
+      --debug        Compile with the cargo dev profile (faster compile,
+                     slower DSP). Don't ship plugins built this way.
+      --no-build     Skip build, install existing artifacts
+      -p <crate>     Install only the plugin with this cargo crate name
+                     (e.g. -p truce-example-gain)
 
-  cargo truce test
-      Run in-process regression tests.
+  build [--clap] [--vst3] [--vst2] [--lv2] [--au2] [--au3] [--aax] [-p <crate>] [--hot-reload] [--debug]
+      Build per-format bundles into target/bundles/ without installing.
+      Defaults to release; pass `--debug` for the cargo dev profile
+      when iterating on layout, packaging, or format-wrapper wiring.
 
-  cargo truce screenshot [-p <crate>] [--name <name>]
+      Defaults match `install`: when no format flags are passed, every
+      format in the project's default Cargo features is built.
+      --clap         CLAP only
+      --vst3         VST3 only
+      --vst2         VST2 only
+      --lv2          LV2 only
+      --au2          AU v2 only (.component, macOS only)
+      --au3          AU v3 only (.appex inside .app, macOS only)
+      --aax          AAX only (requires pre-built SDK + template)
+      -p <crate>     Build only the plugin with this cargo crate name
+      --hot-reload   Add the `hot-reload` feature and also build debug
+                     dylibs (the logic libs the hot-reload shells watch)
+      --debug        Cargo dev profile (faster compile, slower DSP).
+                     Bundles still stage and sign correctly, but the
+                     binary inside is debug-quality — not for shipping.
+
+  package [-p <crate>] [--formats clap,vst3,...] [--user|--system|--ask] [--no-notarize]
+      Build, sign, and package plugins into macOS .pkg / Windows .exe
+      installers. Output goes to `target/dist/`.
+
+      Scope flags pick how the resulting installer behaves at the
+      end user's machine:
+      --ask        End user picks at install time via the macOS
+                   Installer.app destination page or the Inno Setup
+                   \"Choose installation mode\" page (default).
+      --user       Hard-lock to user-scope. CLAP/VST3 land in user
+                   paths with no admin prompt. AAX, AU v3, and
+                   Windows VST2 are kept and installed to the system
+                   path (one admin prompt at install time on Windows;
+                   on macOS the whole pkg widens to system-domain
+                   when AAX/AU v3 are present).
+      --system     Hard-lock to system paths (today's behavior).
+
+      Set `[packaging] preferred_scope = \"user\" | \"system\" | \"ask\"`
+      in `truce.toml` to override the default for a project.
+
+  run [-p <crate>] [--debug] [-- <args>]
+      Build and run a plugin standalone. Pass `--debug` for a
+      faster-compile dev-profile build (fine when iterating outside
+      a DAW); release otherwise.
+
+  remove [--clap] [--vst3] [--vst2] [--au2] [--au3] [--aax] [--user|--system] [-p <crate>] [-n <name>] [--stale] [--dry-run] [--yes]
+      Remove installed plugin bundles for this project.
+      Default: all formats, all plugins, both user + system scopes.
+      Asks for confirmation. AAX and AU v3 are always system-scope —
+      `--user` skips them with the same one-line note as install.
+      -p <crate>   Filter by cargo crate name (e.g. -p truce-example-gain)
+      -n <name>    Filter by display name (e.g. -n 'Truce Gain')
+      --user       Only remove bundles in the per-user directories
+      --system     Only remove bundles in the system directories
+      --stale      Remove vendor bundles NOT in the current project
+                   (renamed/deleted plugins still on the system)
+      --dry-run    Show what would be removed without deleting
+      --yes        Skip confirmation prompt
+
+Validation / Inspection:
+  validate [--auval] [--auval3] [--pluginval] [--clap] [--vst2] [--all] [-p <crate>]
+      Run validation tools on installed plugins.
+      --auval      AU v2 validation only (macOS)
+      --auval3     AU v3 validation only (macOS)
+      --pluginval  VST3 validation via pluginval
+      --clap       CLAP validation via clap-validator
+      --vst2       VST2 dlopen + AEffect probe (macOS-only smoke binary)
+      --all        Run all available validators (default)
+      -p <crate>   Validate only the plugin with this cargo crate name
+
+  screenshot [-p <crate>] [--name <name>]
       Render a plugin's editor headlessly and save the PNG to
-      target/screenshots/. With no -p, renders every plugin in
-      truce.toml.
+      target/screenshots/<name>.png. With no -p, screenshots every
+      plugin in truce.toml. Default name is <bundle_id>_screenshot.
 
-  cargo truce clean [--all]
+  test
+      Run all plugin tests (render, state, params, metadata).
+
+  status
+      Show installed plugins and AU registration state.
+
+  doctor
+      Check development environment and installed plugins.
+
+Maintenance:
+  clean [--all]
       Run `cargo clean` while preserving `target/dist/` (signed /
       notarized installers — expensive to rebuild). Pass `--all` to
       wipe everything, equivalent to a bare `cargo clean`. Does not
       touch installed plugin bundles or AU / AAX host caches — see
-      `cargo truce remove`, `reset-au`, `reset-aax` for those.
+      `remove`, `reset-au`, and `reset-aax` for those.
+      --all        Also remove `target/dist/`
 
-  cargo truce reset-au
-      macOS-only. Flush Audio Unit caches (AudioUnitCache, GarageBand
-      / Logic / Reaper plists), reset pluginkit registrations, and
-      restart `pkd` + `AudioComponentRegistrar`. Use when AU bundles
-      are stuck serving stale binaries.
+  reset-au [--yes]
+      macOS-only. Flush Audio Unit caches and restart `pkd` /
+      `AudioComponentRegistrar`. Use when AU bundles are stuck
+      serving stale binaries. CLAP / VST3 / VST2 / LV2 unaffected.
+      --yes        Skip confirmation prompt
 
-  cargo truce reset-aax
+  reset-aax [--yes]
       macOS-only. Wipe this vendor's entries from the Pro Tools AAX
-      cache. Pro Tools re-scans AAX plugins on next launch.
+      cache (`/Users/Shared/Pro Tools/AAXPlugInCache`). Pro Tools
+      re-scans AAX plugins on next launch.
+      --yes        Skip confirmation prompt
 
-  cargo truce status
-      Show installed plugins.
+  log-stream-au
+      macOS-only. Tail AU v3 appex logs live (`os_log` output from the
+      Swift wrapper, subsystem `com.truce.au3`). Forward-only — for
+      historical entries use `log show --last <duration>` directly.
+      Press Ctrl-C to stop.
 
-  cargo truce doctor
-      Check development environment.
-
-  cargo truce log-stream-au
-      Tail AU v3 appex logs live (macOS-only, forward-only).
+  help
+      Show this message.
 
 GLOBAL FLAGS (accepted by every subcommand):
   -v, --verbose
       Echo per-format build banners, per-bundle paths, and the full
-      `codesign` chatter. Default output is the `Built:` /
-      `Installed:` / `Skipped:` summary plus one `✓ signed <bundle>`
-      line per codesign call.
-"
+      `codesign` chatter. Default output is the Built / Installed /
+      Skipped summary plus one `✓ signed <bundle>` line per codesign.
+
+Configuration is read from truce.toml in the project root.
+Run 'cargo truce new <name>' to scaffold a new project."
     );
 }
 
