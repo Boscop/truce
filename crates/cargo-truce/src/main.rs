@@ -11,13 +11,11 @@
 //!   cargo truce validate               # run auval, auval3, pluginval, clap-validator
 //!   cargo truce doctor                 # check environment
 
-mod scaffold;
-
 use std::fs;
 use std::path::Path;
 use std::process::ExitCode;
 
-use scaffold::{PluginKind, PluginSpec};
+use cargo_truce::scaffold::{self, PluginKind, PluginSpec};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).filter(|a| a != "truce").collect();
@@ -41,10 +39,10 @@ fn main() -> ExitCode {
             }
         },
 
-        // Build/install commands — forwarded to truce-xtask
+        // Build/install commands — forwarded to the engine in lib.rs.
         "install" | "build" | "package" | "remove" | "run" | "screenshot" | "test" | "status"
         | "clean" | "reset-au" | "reset-aax" | "validate" | "doctor" | "log-stream-au" => {
-            truce_xtask::run(&args)
+            cargo_truce::run(&args)
         }
 
         "help" | "--help" | "-h" => {
@@ -372,7 +370,7 @@ fn cmd_new_workspace(args: &[String]) -> Res {
                 let (pname, kind_str) = rest.split_once('=').ok_or_else(|| {
                     format!("Invalid --type flag: {s} (expected --type:<plugin>=<kind>)")
                 })?;
-                let kind = PluginKind::from_str(kind_str)?;
+                let kind = PluginKind::parse(kind_str)?;
                 type_overrides.push((pname.to_string(), kind));
             }
             s if s.starts_with('-') => {

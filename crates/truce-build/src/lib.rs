@@ -99,7 +99,7 @@ pub fn emit_plugin_env() {
         _ => "Effect",
     };
     // Keep in sync with `truce-derive::plugin_info` +
-    // `truce-xtask/src/config.rs::resolved_au_type`.
+    // `cargo-truce/src/config.rs::resolved_au_type`.
     let au_type = plugin
         .au_type
         .as_deref()

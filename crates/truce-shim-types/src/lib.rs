@@ -3,7 +3,7 @@
 //! Shared C header types for truce format shims.
 //!
 //! Provides the `au_shim_types.h` header as an embedded constant so both
-//! `truce-au` (build.rs) and `truce-xtask` (AU v3 template) can use a
+//! `truce-au` (build.rs) and `cargo-truce` (AU v3 template) can use a
 //! single source of truth.
 
 /// The `au_shim_types.h` C header, embedded at compile time.

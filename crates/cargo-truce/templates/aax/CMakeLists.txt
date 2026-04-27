@@ -15,7 +15,7 @@ if(NOT DEFINED AAX_SDK_PATH)
 endif()
 
 # AAX library — use pre-built if available, otherwise build from source.
-# `AAX_LIB_PATH` may be passed in via `-D` by truce-xtask (pointing at a
+# `AAX_LIB_PATH` may be passed in via `-D` by cargo-truce (pointing at a
 # truce-managed build under `{sdk}/build-truce/`). If not provided, fall
 # back to the SDK's conventional `build-lib/` tree.
 if(NOT DEFINED AAX_LIB_PATH)

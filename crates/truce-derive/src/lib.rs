@@ -130,7 +130,7 @@ pub fn plugin_info(_input: TokenStream) -> TokenStream {
     // plugins must not expose audio I/O. Logic routes `aumi` to the
     // MIDI FX slot, which is where arpeggiators / transposers /
     // note-shapers belong. Must stay in sync with
-    // `truce-xtask/src/config.rs::resolved_au_type` and
+    // `cargo-truce/src/config.rs::resolved_au_type` and
     // `truce-build::emit_plugin_env` — a mismatch causes auval
     // "Class Data fields … do not match component description".
     let au_type = plugin

@@ -644,9 +644,10 @@ dependencies = [
 name = "cargo-truce"
 version = "0.13.1"
 dependencies = [
+ "libloading 0.8.9",
  "serde",
  "toml 0.8.23",
- "truce-xtask",
+ "truce-shim-types",
 ]
 
 [[package]]
@@ -6355,16 +6356,6 @@ dependencies = [
  "cc",
  "truce-core",
  "truce-params",
-]
-
-[[package]]
-name = "truce-xtask"
-version = "0.13.1"
-dependencies = [
- "libloading 0.8.9",
- "serde",
- "toml 0.8.23",
- "truce-shim-types",
 ]
 
 [[package]]

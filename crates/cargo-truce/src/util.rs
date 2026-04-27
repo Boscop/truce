@@ -327,7 +327,7 @@ fn announce_sudo_once() {
     }
 }
 
-/// Process-global verbose flag. Set at the top of `truce_xtask::run`
+/// Process-global verbose flag. Set at the top of `cargo_truce::run`
 /// from `-v` / `--verbose` and consulted by helpers that have output
 /// worth gating (`codesign`'s "replacing existing signature", etc.).
 static VERBOSE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);

@@ -126,8 +126,7 @@ reopening the plugin window for layout changes.
 
 ## Build system
 
-Build logic lives in `truce-xtask` (library crate). `cargo-truce`
-provides the user-facing CLI.
+Build logic and the user-facing CLI both live in `cargo-truce`.
 
 ```sh
 cargo truce install              # all default-feature formats
@@ -187,10 +186,9 @@ truce-au          — Audio Unit (v2 + v3)
 truce-aax         — AAX format wrapper
 truce-shim-types  — ABI-stable types shared with C/C++ shims
 truce-standalone  — standalone host (cpal audio)
-truce-xtask       — build/bundle/install/package library (powers cargo truce)
 truce-build       — build.rs helper
 truce-test        — test utilities + GUI screenshot tests
-cargo-truce       — scaffolding + build/install/package CLI (cargo truce new)
+cargo-truce       — scaffolding + build/install/package CLI (cargo truce new / install / build / package)
 ```
 
 ## What's remaining

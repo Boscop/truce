@@ -1,7 +1,15 @@
+//! `cargo-truce` library — engine for `cargo truce <subcommand>`.
+//!
+//! `main.rs` owns argument parsing, the `cargo truce` arg strip,
+//! the user-facing help block, and dispatch for `new` /
+//! `new-workspace` (which live in the [`scaffold`] module). Every
+//! other subcommand goes through [`run`].
+
 mod commands;
 mod config;
 pub(crate) mod dirs;
 mod install_scope;
+pub mod scaffold;
 mod templates;
 mod util;
 
@@ -29,11 +37,10 @@ pub(crate) type BoxErr = Box<dyn std::error::Error>;
 
 /// Run a command with the given args (e.g. `["install", "--clap"]`).
 ///
-/// Driven by the `cargo-truce` binary; this crate is the engine, not
-/// the user-facing entry point. Help, scaffold (`new` / `new-workspace`),
-/// and the `cargo truce` arg-stripping all live in `cargo-truce`'s
-/// `main`. Unknown commands here surface back to the caller as an
-/// error so cargo-truce can render its own help block.
+/// Help, scaffold (`new` / `new-workspace`), and the `cargo truce`
+/// arg-stripping live in `main.rs`. Unknown commands here surface
+/// back to the caller as an error so `main` can render its own help
+/// block.
 pub fn run(args: &[String]) -> ExitCode {
     // Strip global `-v` / `--verbose` from anywhere in the arg list.
     // Setting the static once here means every subcommand picks it up
@@ -65,7 +72,7 @@ pub fn run(args: &[String]) -> ExitCode {
         "validate" => commands::validate::cmd_validate(&args[1..]),
         "doctor" => commands::doctor::cmd_doctor(),
         "log-stream-au" => commands::log_stream_au::cmd_log_stream_au(),
-        other => Err(format!("unknown xtask command: {other:?}").into()),
+        other => Err(format!("unknown command: {other:?}").into()),
     };
 
     match result {

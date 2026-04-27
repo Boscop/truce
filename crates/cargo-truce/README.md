@@ -4,10 +4,10 @@ Cargo subcommand for building truce audio plugins.
 
 ## Overview
 
-A thin wrapper around `truce-xtask` that provides the `cargo truce` CLI.
-Handles scaffolding new plugin projects, building and bundling for all
-supported formats, code signing, installation to system plugin directories,
-and validation with host-specific tools.
+The `cargo truce` CLI. Handles scaffolding new plugin projects,
+building and bundling for all supported formats, code signing,
+installing into the host's plug-in directories, and validating with
+host-specific tools.
 
 ## Installation
 

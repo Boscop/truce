@@ -191,7 +191,6 @@ crates/
 ├── truce-iced          # Iced GUI integration
 ├── truce-slint         # Slint GUI integration
 ├── truce-loader        # Hot-reload (native ABI, PluginLogic trait)
-├── truce-xtask         # Build/bundle/install/package library
 ├── truce-test          # Test utilities + GUI screenshot tests
 ├── cargo-truce         # `cargo truce` CLI (new, install, build, package, …)
 ```

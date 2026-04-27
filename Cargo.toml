@@ -24,7 +24,6 @@ members = [
     "examples/truce-example-tremolo",
     "crates/truce-loader",
     "crates/truce-derive",
-    "crates/truce-xtask",
     "crates/cargo-truce",
     "crates/truce-gpu",
     "crates/truce-egui",

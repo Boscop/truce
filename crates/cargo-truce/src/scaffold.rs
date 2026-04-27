@@ -10,7 +10,7 @@ pub enum PluginKind {
 }
 
 impl PluginKind {
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    pub fn parse(s: &str) -> Result<Self, String> {
         match s {
             "effect" => Ok(Self::Effect),
             "instrument" => Ok(Self::Instrument),

@@ -8,11 +8,18 @@ repository = "https://github.com/truce-audio/truce"
 keywords = ["audio", "plugin", "vst", "clap", "daw"]
 categories = ["multimedia::audio", "development-tools::build-utils"]
 
+[lib]
+name = "cargo_truce"
+path = "src/lib.rs"
+
 [[bin]]
 name = "cargo-truce"
 path = "src/main.rs"
 
 [dependencies]
-truce-xtask = { version = "0.13.1", path = "../truce-xtask" }
 toml = "0.8"
 serde = { version = "1", features = ["derive"] }
+truce-shim-types = { workspace = true }
+
+[dependencies.libloading]
+version = "0.8"
