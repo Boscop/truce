@@ -465,10 +465,16 @@ fn walk_cargo_toml(dir: &Path, out: &mut Vec<PathBuf>) {
 /// Line-based rewrite:
 ///
 /// ```text
-/// <key> = { git = "https://github.com/truce-audio/truce"[, ...] }
+/// <key> = { git = "https://github.com/truce-audio/truce"[, branch = "..."][, ...] }
 ///                           ↓
 /// <key> = { path = "<crates>/<key>"[, ...] }
 /// ```
+///
+/// `branch = "..."` is stripped because path deps reject it (`key
+/// `branch` is ignored for dependency`). Scaffolded Cargo.tomls pin
+/// to a `preview/{major}.{minor}` train branch — the test harness
+/// has to swap that for a path dep without leaving the now-orphaned
+/// branch key behind.
 ///
 /// Skips commented-out lines (so the workspace `[workspace.dependencies]`
 /// block's commented "Uncomment to opt in" entries pass through
@@ -495,7 +501,17 @@ fn rewrite_git_refs(content: &str, crates_dir: &str) -> String {
         };
         let key = line[..eq_idx].trim();
         let replacement = format!(r#"{{ path = "{crates_dir}/{key}""#);
-        out.push_str(&line.replacen(NEEDLE, &replacement, 1));
+        let mut rewritten = line.replacen(NEEDLE, &replacement, 1);
+        // Strip `, branch = "..."` if present — `branch` is invalid on
+        // path deps. The scaffold emits exactly one branch field per
+        // line, immediately after the URL.
+        if let Some(start) = rewritten.find(r#", branch = ""#) {
+            let after = start + r#", branch = ""#.len();
+            if let Some(end_quote) = rewritten[after..].find('"') {
+                rewritten.replace_range(start..after + end_quote + 1, "");
+            }
+        }
+        out.push_str(&rewritten);
         out.push('\n');
     }
     // Preserve trailing-newline state — `lines()` drops the final \n.
@@ -750,6 +766,19 @@ truce-standalone = { git = "https://github.com/truce-audio/truce", features = ["
 "#;
     let expected = r#"truce-clap = { path = "/abs/crates/truce-clap", optional = true }
 truce-standalone = { path = "/abs/crates/truce-standalone", features = ["gui"] }
+"#;
+    assert_eq!(rewrite_git_refs(input, "/abs/crates"), expected);
+}
+
+#[test]
+fn rewrite_strips_branch_pin() {
+    let input = r#"truce = { git = "https://github.com/truce-audio/truce", branch = "preview/0.14" }
+truce-clap = { git = "https://github.com/truce-audio/truce", branch = "preview/0.14", optional = true }
+truce-standalone = { git = "https://github.com/truce-audio/truce", branch = "preview/0.14", features = ["gui"], optional = true }
+"#;
+    let expected = r#"truce = { path = "/abs/crates/truce" }
+truce-clap = { path = "/abs/crates/truce-clap", optional = true }
+truce-standalone = { path = "/abs/crates/truce-standalone", features = ["gui"], optional = true }
 "#;
     assert_eq!(rewrite_git_refs(input, "/abs/crates"), expected);
 }
