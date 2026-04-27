@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
 pub use truce_core as core;
-pub use truce_params as params;
 pub use truce_derive::{ParamEnum, Params, State};
+pub use truce_params as params;
 
 #[cfg(feature = "clap")]
 pub use truce_clap as clap_wrapper;
