@@ -17,19 +17,18 @@
 ///
 /// # Hot-reload
 ///
-/// Add a `hot-reload` feature to your Cargo.toml and build the shell
-/// with `--features hot-reload --release`. The logic dylib is built
-/// normally (`cargo build`). The shell watches for changes and
-/// hot-reloads.
+/// Add a `shell` feature to your Cargo.toml and build the shell with
+/// `--features shell --release`. The logic dylib is built normally
+/// (`cargo build`). The shell watches for changes and hot-reloads.
 ///
 /// ```toml
 /// [features]
-/// hot-reload = ["truce/hot-reload"]
+/// shell = ["truce/shell"]
 /// ```
 ///
 /// ```bash
-/// cargo build --release --features hot-reload  # one-time: install shell
-/// cargo watch -x build                         # iterate: logic hot-reloads
+/// cargo build --release --features shell  # one-time: install shell
+/// cargo watch -x build                    # iterate: logic hot-reloads
 /// ```
 ///
 /// Zero code changes. Same `truce::plugin!` macro.
@@ -56,17 +55,18 @@ macro_rules! plugin {
 #[macro_export]
 macro_rules! __plugin_impl {
     ($logic:ty, $params:ty, [$($layout:expr),*]) => {
-        // Always export the PluginLogic for dylib use (hot-reload or testing).
+        // Always export the PluginLogic for dylib use (shell-mode or
+        // testing). Static-mode shells ignore these exports.
         $crate::__reexport::export_plugin!($logic, $params);
 
-        // The static / hot-reload `__HotShellWrapper` definition lives
-        // inside this synthetic module so a single
-        // `#[allow(unexpected_cfgs)]` covers the `feature = "hot-reload"`
-        // gate. Without the wrap, downstream crates that don't declare
-        // a `hot-reload` Cargo feature emit `unexpected_cfgs` warnings
-        // at the `truce::plugin!` invocation site (the lint is
-        // attributed to the macro, not the cfg attribute, so per-item
-        // `#[allow]` doesn't suppress it). Same trick as
+        // The static / dynamic-shell `__HotShellWrapper` definition
+        // lives inside this synthetic module so a single
+        // `#[allow(unexpected_cfgs)]` covers the `feature = "shell"`
+        // gate. Without the wrap, downstream crates that don't
+        // declare a `shell` Cargo feature emit `unexpected_cfgs`
+        // warnings at the `truce::plugin!` invocation site (the lint
+        // is attributed to the macro, not the cfg attribute, so
+        // per-item `#[allow]` doesn't suppress it). Same trick as
         // `__truce_format_exports` below.
         #[allow(unexpected_cfgs)]
         mod __truce_runtime {
@@ -77,7 +77,7 @@ macro_rules! __plugin_impl {
 
             // --- Static mode (default) ---
             // Embed the logic directly. Zero overhead.
-            #[cfg(not(feature = "hot-reload"))]
+            #[cfg(not(feature = "shell"))]
             $crate::__reexport::export_static! {
                 params: $params,
                 info: $crate::prelude::plugin_info!(),
@@ -85,9 +85,9 @@ macro_rules! __plugin_impl {
                 logic: $logic,
             }
 
-            // --- Hot-reload mode ---
+            // --- Shell mode (hot-reload) ---
             // Load the logic from a dylib. Same crate, debug build.
-            #[cfg(feature = "hot-reload")]
+            #[cfg(feature = "shell")]
             $crate::__plugin_hot_reload!($params, [$($layout),*]);
         }
 
@@ -165,11 +165,11 @@ macro_rules! __plugin_impl {
     };
 }
 
-/// Hot-reload mode: generate a shell that loads the logic from this
-/// same crate's debug-build dylib.
+/// Shell mode: generate a dynamic shell that loads the logic from
+/// this same crate's debug-build dylib.
 ///
 /// The developer builds the shell once with
-/// `--features hot-reload --release` and iterates with `cargo build`
+/// `--features shell --release` and iterates with `cargo build`
 /// (debug, fast). The shell watches `target/debug/lib{crate_name}.dylib`
 /// for changes.
 #[doc(hidden)]

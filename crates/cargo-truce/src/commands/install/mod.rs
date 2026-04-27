@@ -37,7 +37,7 @@ pub(crate) fn cmd_install(args: &[String]) -> Res {
     let mut au3 = false;
     let mut aax = false;
     let mut no_build = false;
-    let mut hot_reload = false;
+    let mut shell_mode = false;
     let mut debug = false;
     let mut plugin_filter: Option<String> = None;
     let mut cli_scope: Option<InstallScope> = None;
@@ -53,7 +53,7 @@ pub(crate) fn cmd_install(args: &[String]) -> Res {
             "--au3" => au3 = true,
             "--aax" => aax = true,
             "--no-build" => no_build = true,
-            "--hot-reload" => hot_reload = true,
+            "--shell" => shell_mode = true,
             "--debug" => debug = true,
             "--user" => {
                 if matches!(cli_scope, Some(InstallScope::System)) {
@@ -91,6 +91,21 @@ pub(crate) fn cmd_install(args: &[String]) -> Res {
     // Scope resolution: CLI flag wins, otherwise OS default (user
     // on every platform).
     let scope = cli_scope.unwrap_or_else(InstallScope::os_default);
+
+    // `--shell` always builds the logic dylib in dev profile (the
+    // hot-reload workflow assumes "shell in release, logic in
+    // debug"). `--debug` would force the shell into dev too, which
+    // adds nothing — the logic dylib is already dev — and races
+    // both builds for the same `target/debug/lib<crate>.dylib` path.
+    if shell_mode && debug {
+        return Err(
+            "--shell and --debug can't be combined. The logic dylib is already \
+             built in the cargo dev profile when --shell is set; --debug only \
+             flips the shell build, which causes both builds to race for \
+             target/debug/lib<crate>.dylib. Drop --debug."
+                .into(),
+        );
+    }
 
     if !clap && !vst3 && !vst2 && !lv2 && !au2 && !au3 && !aax {
         // No format flags specified — enable all formats that the project supports.
@@ -138,8 +153,8 @@ pub(crate) fn cmd_install(args: &[String]) -> Res {
     let dt = &deployment_target();
 
     let mut extra_features = Vec::new();
-    if hot_reload {
-        extra_features.push("hot-reload");
+    if shell_mode {
+        extra_features.push("shell");
     }
 
     // --- Build ---
@@ -351,17 +366,21 @@ pub(crate) fn cmd_install(args: &[String]) -> Res {
             );
         }
 
-        // In dev mode, also build the debug dylibs (the logic that
-        // the hot-reload shells watch and load).
-        if hot_reload {
-            crate::vprintln!("Building debug dylibs (logic for hot-reload)...");
-            let mut cmd = Command::new("cargo");
-            cmd.arg("build").arg("--workspace");
-            #[cfg(target_os = "macos")]
-            cmd.env("MACOSX_DEPLOYMENT_TARGET", dt);
-            let status = cmd.status()?;
-            if !status.success() {
-                return Err("debug workspace build failed".into());
+        // Shell mode: also build the debug dylibs (the logic dylib
+        // each installed shell will dlopen at runtime). Scoped to
+        // the plugins being installed — `--workspace` rebuilt every
+        // example + framework crate on a fresh checkout.
+        if shell_mode {
+            for p in &plugins {
+                crate::vprintln!("Building debug dylib for {} (shell logic)...", p.crate_name);
+                let mut cmd = Command::new("cargo");
+                cmd.arg("build").arg("-p").arg(&p.crate_name);
+                #[cfg(target_os = "macos")]
+                cmd.env("MACOSX_DEPLOYMENT_TARGET", dt);
+                let status = cmd.status()?;
+                if !status.success() {
+                    return Err(format!("debug build of {} failed", p.crate_name).into());
+                }
             }
         }
     }

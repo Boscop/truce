@@ -17,7 +17,7 @@ mod plugin_macro;
 pub mod __reexport {
     pub use truce_loader::{export_plugin, export_static};
 
-    #[cfg(feature = "hot-reload")]
+    #[cfg(feature = "shell")]
     pub use truce_loader::shell::HotShell;
 }
 

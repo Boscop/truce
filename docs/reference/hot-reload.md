@@ -7,7 +7,7 @@ No DAW restart. No plugin window close. Same source file, same
 ## Setup
 
 The default `cargo truce new` scaffold produces a single-crate
-plugin with the `hot-reload` feature pre-wired:
+plugin with the `shell` feature pre-wired:
 
 ```toml
 [features]
@@ -15,26 +15,26 @@ default  = ["clap", "vst3"]
 clap     = ["dep:truce-clap", "dep:clap-sys"]
 vst3     = ["dep:truce-vst3"]
 # ... other format features ...
-dev      = ["truce/dev"]     # ← the hot-reload feature
+shell    = ["truce/shell"]     # ← the hot-reload feature
 ```
 
 ```sh
-# One-time: build and install the hot-reload shell.
-cargo truce install --hot-reload
+# One-time: build and install the dynamic shell.
+cargo truce install --shell
 
 # Iterate: rebuild the logic dylib on every save (debug, fast).
 cargo watch -x "build -p my-plugin"
 ```
 
-`--hot-reload` flips the `hot-reload` feature on, which makes `truce::plugin!`
-expand into a shell that loads your `PluginLogic` out of a
+`--shell` flips the `shell` feature on, which makes `truce::plugin!`
+expand into a dynamic shell that loads your `PluginLogic` out of a
 separate dylib. The shell watches the dylib for content changes
 and swaps in the new one while the plugin is live.
 
 When you're done iterating, ship the release build:
 
 ```sh
-cargo truce install          # no --hot-reload = static, zero overhead
+cargo truce install          # no --shell = static, zero overhead
 ```
 
 Zero code changes between dev and release.
@@ -68,17 +68,17 @@ reopen the plugin window to see layout changes in the custom UI.
 | Bus layout | Host configures at init. |
 
 Changing any of these requires rebuilding the shell
-(`cargo truce install --hot-reload`) and having the host rescan. That's
+(`cargo truce install --shell`) and having the host rescan. That's
 rare — most iteration is on DSP and GUI layout.
 
 ## How it works
 
-The `truce::plugin!` macro expands differently when the `dev`
+The `truce::plugin!` macro expands differently when the `shell`
 feature is on:
 
-- **Without `dev`**: `StaticShell` embeds the `PluginLogic`
+- **Without `shell`**: `StaticShell` embeds the `PluginLogic`
   directly. Zero overhead, ships in production.
-- **With `dev`**: `HotShell` loads the `PluginLogic` from a
+- **With `shell`**: `HotShell` loads the `PluginLogic` from a
   separate dylib via native Rust ABI. A file watcher thread
   monitors that dylib.
 
@@ -107,9 +107,12 @@ avoid deadlocks.
 ## Troubleshooting
 
 **Plugin doesn't notice the new dylib.**
-Check `target/debug/lib{crate_name}.{dylib,so,dll}` exists after
-build. Override with `TRUCE_LOGIC_PATH=/absolute/path/to/lib...`.
-The shell skips reload if CRC32 hasn't changed.
+The shell looks for `target/debug/lib{crate_name}.{dylib,so,dll}`
+(walked up from the crate that compiled the shell, ignoring
+`CARGO_TARGET_DIR` and the cargo profile at runtime). If that file
+doesn't exist after rebuild, override the lookup with
+`TRUCE_LOGIC_PATH=/absolute/path/to/lib...` in the env that
+launches the host. The shell skips reload if CRC32 hasn't changed.
 
 **macOS "code signature invalid."**
 The shell codesigns the dylib copy. Ensure Xcode CLI tools are

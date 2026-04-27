@@ -166,7 +166,7 @@ lv2        = ["truce/lv2"]
 au         = ["truce/au"]
 aax        = ["truce/aax"]
 standalone = ["truce/standalone"]
-hot-reload = ["truce/hot-reload"]
+shell      = ["truce/shell"]
 ```
 
 Scaffolded plugins enable CLAP + VST3 + standalone by default. Add more formats
@@ -302,7 +302,7 @@ Closing and reopening the plugin for every edit gets old fast. Turn
 on hot reload:
 
 ```sh
-cargo truce install --hot-reload      # one-time: installs the hot-reload shell
+cargo truce install --shell      # one-time: installs the dynamic shell
 cargo watch -x "build -p my-gain"
 ```
 
@@ -311,7 +311,7 @@ no window close. When you're done iterating, ship the static
 release build:
 
 ```sh
-cargo truce install            # no --hot-reload = static, zero overhead
+cargo truce install              # no --shell = static, zero overhead
 ```
 
 Full story in [chapter 7 → hot-reload.md](hot-reload.md).

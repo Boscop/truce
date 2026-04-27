@@ -81,7 +81,7 @@ Scaffold:
         --type:<plugin>=<kind>      Per-plugin type override (effect, instrument, midi)
 
 Build / Install / Package:
-  install [--clap] [--vst3] [--vst2] [--au2] [--au3] [--aax] [--user|--system] [--hot-reload] [--debug] [--no-build] [-p <crate>]
+  install [--clap] [--vst3] [--vst2] [--au2] [--au3] [--aax] [--user|--system] [--shell] [--debug] [--no-build] [-p <crate>]
       Build and install plugins into the host's plug-in directories.
       Defaults to release because installing usually means audio-
       testing in a DAW — release avoids surprise CPU spikes from
@@ -111,14 +111,15 @@ Build / Install / Package:
                      LV2, and AU v2.
       --system       Install into the system-wide directories. Requires
                      sudo on macOS, admin on Windows.
-      --hot-reload   Build hot-reload shells (use with cargo watch for iteration)
+      --shell        Build hot-reload shells + per-plugin debug logic
+                     dylibs (use with `cargo watch -x build` to iterate)
       --debug        Compile with the cargo dev profile (faster compile,
                      slower DSP). Don't ship plugins built this way.
       --no-build     Skip build, install existing artifacts
       -p <crate>     Install only the plugin with this cargo crate name
                      (e.g. -p truce-example-gain)
 
-  build [--clap] [--vst3] [--vst2] [--lv2] [--au2] [--au3] [--aax] [-p <crate>] [--hot-reload] [--debug]
+  build [--clap] [--vst3] [--vst2] [--lv2] [--au2] [--au3] [--aax] [-p <crate>] [--shell] [--debug]
       Build per-format bundles into target/bundles/ without installing.
       Defaults to release; pass `--debug` for the cargo dev profile
       when iterating on layout, packaging, or format-wrapper wiring.
@@ -133,8 +134,9 @@ Build / Install / Package:
       --au3          AU v3 only (.appex inside .app, macOS only)
       --aax          AAX only (requires pre-built SDK + template)
       -p <crate>     Build only the plugin with this cargo crate name
-      --hot-reload   Add the `hot-reload` feature and also build debug
-                     dylibs (the logic libs the hot-reload shells watch)
+      --shell        Add the `shell` feature and build the per-plugin
+                     debug logic dylibs alongside (the libs the
+                     hot-reload shells dlopen at runtime)
       --debug        Cargo dev profile (faster compile, slower DSP).
                      Bundles still stage and sign correctly, but the
                      binary inside is debug-quality — not for shipping.

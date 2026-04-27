@@ -27,7 +27,7 @@ single import path for everything.
 | `vst3` | Enable VST3 format export |
 | `vst2` | Enable VST2 format export (legacy — see `Cargo.toml` note) |
 | `lv2` | Enable LV2 format export |
-| `hot-reload` | Hot-reloadable logic dylib (turns on `truce-loader/shell`) |
+| `shell` | Build a dynamic shell that dlopens a hot-reloadable logic dylib (turns on `truce-loader/shell`) |
 | `hot-debug` | Verbose hot-reload diagnostics |
 
 AU and AAX live in their own optional `truce-au` / `truce-aax` deps

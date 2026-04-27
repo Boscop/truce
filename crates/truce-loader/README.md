@@ -15,8 +15,8 @@ shell. Used by every truce plugin, in two modes:
   on rebuild without restarting the DAW. Preserves audio continuity.
 
 Developers implement the safe `PluginLogic` trait. The `truce::plugin!`
-macro emits the right `export_*!` call based on the `hot-reload`
-Cargo feature on the `truce` facade.
+macro emits the right `export_*!` call based on the `shell` Cargo
+feature on the `truce` facade.
 
 ## Key types and macros
 
@@ -24,7 +24,7 @@ Cargo feature on the `truce` facade.
 - **`HotShell`** -- shell-side dylib loader and hot-swap manager
 - **`StaticShell`** -- shell-side wrapper that embeds the logic at compile time
 - **`export_static!`** -- emits the `__HotShellWrapper` for static mode
-- **`export_plugin!`** -- emits the `#[no_mangle]` C ABI for hot-reload mode
+- **`export_plugin!`** -- emits the `#[no_mangle]` C ABI for shell mode
 
 ## Features
 
@@ -36,11 +36,11 @@ Cargo feature on the `truce` facade.
 
 ## Usage
 
-Enable hot-reload during development:
+Enable the dynamic shell (hot-reload) during development:
 
 ```toml
 [dependencies]
-truce = { git = "https://github.com/truce-audio/truce", features = ["hot-reload"] }
+truce = { git = "https://github.com/truce-audio/truce", features = ["shell"] }
 ```
 
 Part of [truce](https://github.com/truce-audio/truce).
