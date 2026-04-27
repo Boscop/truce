@@ -1,5 +1,11 @@
 # Reference
 
+> **Build profile.** Every `cargo truce` command (`install`, `build`,
+> `package`, `run`, `screenshot`) defaults to the cargo **release**
+> profile — plugins are typically loaded into a DAW where debug-build
+> DSP can spike CPU under load. Pass `--debug` to opt into the cargo
+> dev profile for fast-compile iteration.
+
 | # | Chapter | What you get |
 |---|---------|--------------|
 | 1 | [install.md](install.md) | Rust + system deps + `cargo install cargo-truce` + `cargo truce doctor` |
