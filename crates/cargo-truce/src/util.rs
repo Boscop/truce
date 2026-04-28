@@ -7,6 +7,7 @@
 use crate::BoxErr;
 use std::env;
 use std::fs;
+#[cfg(target_os = "macos")]
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
