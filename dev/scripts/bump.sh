@@ -11,9 +11,9 @@
 #
 # Branches off origin/main, bumps both version strings in
 # `Cargo.toml`, refreshes `Cargo.lock`, commits on `bump/vX.Y.Z`,
-# pushes, opens a PR against `main`. Any merge style works — the
-# simplified model has no long-lived branches that need SHA
-# preservation.
+# pushes, opens a PR against `main`. The PR must be merged using
+# GitHub's "Rebase and merge" — branch protection on `main` should
+# already enforce this; see DEVELOPMENT.md "Workflow rules".
 #
 # Idempotent: re-running with the same version resets the bump
 # branch to a fresh state and force-pushes. Re-opening the PR is a
@@ -127,6 +127,9 @@ Diff should be limited to the two version strings in \`Cargo.toml\`
 (\`[workspace.package].version\` + the \`truce-shim-types\` entry in
 \`[workspace.dependencies]\`) and the corresponding entries in
 \`Cargo.lock\`. Reject anything else.
+
+**Merge using "Rebase and merge"** — branch protection on \`main\`
+enforces this; the green button should only offer that option.
 
 After merging, ship via:
 

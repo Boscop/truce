@@ -470,11 +470,11 @@ fn walk_cargo_toml(dir: &Path, out: &mut Vec<PathBuf>) {
 /// <key> = { path = "<crates>/<key>"[, ...] }
 /// ```
 ///
-/// `branch = "..."` is stripped because path deps reject it (`key
-/// `branch` is ignored for dependency`). Scaffolded Cargo.tomls pin
-/// to a `preview/{major}.{minor}` train branch — the test harness
-/// has to swap that for a path dep without leaving the now-orphaned
-/// branch key behind.
+/// `tag = "..."` (and `branch = "..."` for legacy fixtures) are
+/// stripped because path deps reject both keys. Current scaffolds
+/// emit `tag = "vX.Y.Z"`; the rewriter handles branch pins too so
+/// older fixtures and back-compat tests keep working without
+/// special-casing.
 ///
 /// Skips commented-out lines (so the workspace `[workspace.dependencies]`
 /// block's commented "Uncomment to opt in" entries pass through

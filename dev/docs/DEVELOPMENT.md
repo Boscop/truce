@@ -26,13 +26,17 @@ git push -u origin feat/your-change
 gh pr create --base main
 ```
 
-**Any merge style works.** No rebase-and-merge requirement, no
-SHA-preservation invariants. Pick what suits the change. (This is a
-recent simplification — see
-[`truce-docs/docs/internal/release-robustness.md`](../../truce-docs/docs/internal/release-robustness.md)
-for the previous two-branch model and the fragility that motivated
-moving away from it. The TL;DR: long-lived integration branches are
-hard to keep in sync; we don't need them.)
+**Use "Rebase and merge" for PRs to `main`.** Keeps `main`'s
+history linear — every commit is a discrete, reviewable change.
+Squash-merging collapses meaningful commits into one (loses commit
+identity); merge-commits add noise. Branch protection on `main`
+should be configured to disable squash + merge-commit so the green
+PR button only offers rebase.
+
+(This is the only enforced merge style. We've kept rebase-merge
+after a recent move from a two-branch model to a single-branch one
+— rebase preserves linear history, which makes `git log main` read
+as a clean sequence of changes.)
 
 ## Building and testing
 
@@ -85,7 +89,8 @@ until both crates have shipped their first version). Verify with
 
 # 2. Review + merge the opened PR via the GitHub UI. Diff should be
 #    limited to the two version strings in Cargo.toml + Cargo.lock
-#    entries — reject anything else. Any merge style works.
+#    entries — reject anything else. Merge using "Rebase and merge"
+#    (the only style allowed by branch protection on `main`).
 
 # 3. Publish.
 git checkout main && git pull --ff-only
@@ -230,9 +235,11 @@ the new tag — no parallel edit to `scaffold.rs` required.
 | `git = "...", tag = "vX.Y.Z"` | exact tag, immutable (**scaffold default**) |
 | `git = "...", rev = "<sha>"` | exact commit, immutable |
 
-Older scaffolds may pin to `branch = "preview/0.15"` or similar —
-those branches still exist as historical refs and keep resolving,
-but they don't get new patches.
+Older scaffolds that pinned to historical train branches keep
+resolving — those refs still exist in the repo's history — but
+they're frozen at the simpler-model cutover point. Existing
+plugins should migrate by editing their `Cargo.toml` to a
+`tag = "vX.Y.Z"` pin.
 
 ### Tag hygiene
 

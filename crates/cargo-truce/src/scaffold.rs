@@ -11,12 +11,10 @@ use std::collections::{HashMap, HashSet};
 /// Returns just the tag string, e.g. `"v0.15.3"`. Templates wrap it
 /// as `tag = "v0.15.3"` in dep lines.
 ///
-/// Why a tag (full patch) and not a branch (minor only): scaffolds
-/// pin to a specific immutable point so a fresh `cargo build` a
-/// month later reproduces the exact same build. Users who want to
-/// float on the latest patch can swap `tag = "vX.Y.Z"` for
-/// `branch = "preview/X.Y"` after scaffolding — the train branch
-/// still exists for that, it's just not the default pin form.
+/// Why a tag (full patch): scaffolds pin to a specific immutable
+/// point so a fresh `cargo build` a month later reproduces the
+/// exact same build. Users upgrade by editing the tag string when
+/// they want a newer release.
 fn current_tag() -> String {
     format!("v{}", env!("CARGO_PKG_VERSION"))
 }
