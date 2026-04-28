@@ -39,8 +39,14 @@ the conventional pattern.
 
 ```toml
 [dependencies]
-truce = { git = "https://github.com/truce-audio/truce", features = ["clap"] }
+truce = { git = "https://github.com/truce-audio/truce", tag = "vX.Y.Z", features = ["clap"] }
 ```
+
+(Replace `vX.Y.Z` with the latest release tag — see the
+[releases page](https://github.com/truce-audio/truce/releases). Use
+`branch = "main"` instead of `tag = ...` to track the bleeding edge.
+Or just run `cargo truce new` and let the scaffolder write the
+right pin for you.)
 
 ```rust
 use truce::prelude::*;

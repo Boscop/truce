@@ -40,7 +40,9 @@ Enable the dynamic shell (hot-reload) during development:
 
 ```toml
 [dependencies]
-truce = { git = "https://github.com/truce-audio/truce", features = ["shell"] }
+truce = { git = "https://github.com/truce-audio/truce", tag = "vX.Y.Z", features = ["shell"] }
 ```
+
+(Replace `vX.Y.Z` with the latest release tag.)
 
 Part of [truce](https://github.com/truce-audio/truce).

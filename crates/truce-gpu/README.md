@@ -23,9 +23,13 @@ editor. Every in-tree example plugin uses this path.
 
 ```toml
 [dependencies]
-truce = { git = "https://github.com/truce-audio/truce", features = ["clap"] }
-truce-gpu = { git = "https://github.com/truce-audio/truce" }
+truce     = { git = "https://github.com/truce-audio/truce", tag = "vX.Y.Z", features = ["clap"] }
+truce-gpu = { git = "https://github.com/truce-audio/truce", tag = "vX.Y.Z" }
 ```
+
+(Replace `vX.Y.Z` with the latest release tag from
+[the releases page](https://github.com/truce-audio/truce/releases),
+or run `cargo truce new` and let the scaffolder pin for you.)
 
 ```rust
 fn editor() -> Option<Box<dyn Editor>> {
