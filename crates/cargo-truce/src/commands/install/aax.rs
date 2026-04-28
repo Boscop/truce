@@ -497,6 +497,24 @@ pub(crate) fn emit_aax_bundle(
         // Apple codesign against `target/bundles/` — user-owned, no
         // sudo needed. PACE wraps this signature in a separate
         // packaging step.
+        //
+        // Inside-out: `codesign --deep` does NOT recurse into
+        // Contents/Resources/ for AAX bundles (CFBundlePackageType =
+        // TDMw isn't on Apple's bundle-traversal whitelist), so the
+        // inner Rust dylib retains its linker-applied ad-hoc seal
+        // and notarization rejects it ("not signed with a valid
+        // Developer ID certificate"). Sign the inner dylib first,
+        // then the bundle. The outer template at Contents/MacOS/
+        // does get picked up by --deep on the bundle pass since
+        // that's the canonical bundle executable location.
+        let inner_dylib = contents
+            .join("Resources")
+            .join(format!("lib{}_aax.dylib", p.dylib_stem()));
+        codesign_bundle(
+            inner_dylib.to_str().unwrap(),
+            config.macos.application_identity(),
+            false,
+        )?;
         codesign_bundle(
             bundle.to_str().unwrap(),
             config.macos.application_identity(),
