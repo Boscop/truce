@@ -12,7 +12,7 @@ host-specific tools.
 ## Installation
 
 ```sh
-cargo install --git https://github.com/truce-audio/truce cargo-truce
+cargo install cargo-truce
 ```
 
 ## Commands

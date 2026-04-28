@@ -17,7 +17,7 @@ AAX, and standalone from a single Rust codebase.
 
 ```sh
 # Install the CLI (one-time)
-cargo install --git https://github.com/truce-audio/truce cargo-truce
+cargo install cargo-truce
 
 # Scaffold a new plugin
 cargo truce new my-plugin

@@ -1,7 +1,7 @@
 //! cargo-truce — build tool for truce audio plugins.
 //!
 //! Install:
-//!   cargo install --git https://github.com/truce-audio/truce cargo-truce
+//!   cargo install cargo-truce
 //!
 //! Usage:
 //!   cargo truce new my-plugin          # scaffold a new plugin project

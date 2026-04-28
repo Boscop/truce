@@ -17,13 +17,21 @@ project installs the pinned version.
 ## Install the CLI
 
 ```sh
-cargo install --git https://github.com/truce-audio/truce cargo-truce
+cargo install cargo-truce
 ```
 
-This installs `cargo-truce`, which Cargo picks up as the
-`cargo truce` subcommand. Re-run it to upgrade; the scaffold
-templates ship with the CLI binary, so upgrading the CLI is how you
-get new scaffold features.
+Pulls `cargo-truce` from crates.io. Cargo picks it up as the
+`cargo truce` subcommand. Re-run with `--force` to upgrade; the
+scaffold templates ship with the CLI binary, so upgrading the CLI
+is how you get new scaffold features.
+
+To pin a specific version:
+
+```sh
+cargo install cargo-truce --version X.Y.Z              # crates.io, exact
+cargo install --git https://github.com/truce-audio/truce \
+              --tag vX.Y.Z cargo-truce                  # git, exact pin
+```
 
 ## Platform deps
 
