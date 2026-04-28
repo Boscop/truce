@@ -11,31 +11,28 @@ a pull request. CI must pass on the PR, and at least one review is
 expected before merge. `main` is protected — direct pushes will be
 rejected.
 
-**The active development branch is `dev/latest`.** Branch your work
-off `dev/latest`, not `main`. PRs target `dev/latest`. Periodically,
-`dev/latest` is merged into `main` as part of the release process
-(see below). This keeps `main` close to the latest tagged release —
-users who scaffold new plugins should be able to track `main` without
-seeing in-progress work.
-
-**Bump PRs (`dev/latest` → `main`) use "Rebase and merge", never
-"Squash and merge".** Squash-merging the bump PR rewrites
-dev/latest's commits into a new SHA on main, breaking the
-fast-forward sync that keeps `dev/latest` aligned with `main` after
-each release. Repo branch protection on `main` should disable
-squash-merging so the green PR button only offers safe options.
-Feature PRs to `dev/latest` can use any merge style — the
-SHA-preservation requirement only applies at the `dev/latest` →
-`main` boundary.
+**`main` is the only long-lived branch.** Feature work lives on
+short-lived feature branches (e.g., `feat/your-change`) created off
+`main`, PR'd to `main`, and deleted on merge. Release bumps live on
+short-lived `bump/vX.Y.Z` branches managed by `bump.sh`. Releases
+themselves are tags (`vX.Y.Z`).
 
 ```sh
-git checkout dev/latest
+git checkout main
 git pull --ff-only
 git checkout -b feat/your-change
 # ... commits ...
 git push -u origin feat/your-change
-gh pr create --base dev/latest
+gh pr create --base main
 ```
+
+**Any merge style works.** No rebase-and-merge requirement, no
+SHA-preservation invariants. Pick what suits the change. (This is a
+recent simplification — see
+[`truce-docs/docs/internal/release-robustness.md`](../../truce-docs/docs/internal/release-robustness.md)
+for the previous two-branch model and the fragility that motivated
+moving away from it. The TL;DR: long-lived integration branches are
+hard to keep in sync; we don't need them.)
 
 ## Building and testing
 
@@ -53,39 +50,21 @@ broken intra-doc links fail the build.
 
 ## Release process
 
-How to cut a `truce` release that scaffolded plugins can pin to.
-Every release is **both** a Git tag (`v{major}.{minor}.{patch}`) and
-a release branch (`preview/{major}.{minor}` while pre-1.0;
-`release/{major}.{minor}` post-1.0):
+Two scripts under `dev/scripts/`:
 
-- The **tag** is the immutable snapshot. CI artifacts, the
-  `cargo install --tag v0.15.0 cargo-truce` recipe, and any
-  `tag = "v0.15.0"` pin in a user's `Cargo.toml` resolve to it.
-- The **branch** is what users pin via `branch = "preview/0.15"`
-  to float patches automatically. Each `0.15.x` patch release
-  fast-forwards `preview/0.15` to the new tag.
+- **`bump.sh`** — opens the version-bump PR. Branches off
+  `origin/main`, bumps `Cargo.toml`, refreshes `Cargo.lock`, pushes
+  on `bump/vX.Y.Z`, opens the PR. Idempotent: re-running with the
+  same version resets the bump branch and reuses the open PR.
+- **`release.sh`** — runs *after* the bump PR is merged. Reads the
+  version from main HEAD, tags, publishes both crates with the
+  inter-publish sleep, pushes the tag, creates the GitHub Release.
+  **Idempotent at every step** — if a step is already done (tag on
+  origin, crate on crates.io, GitHub Release exists), it skips
+  ahead. Re-run after a partial failure to resume.
 
-The branch costs one extra `git push` per release and gives users
-the cargo-flavoured upgrade path they expect from semver.
-
-### When to release
-
-- **Patch (`0.15.0` → `0.15.1`):** bug fixes, doc changes, and any
-  *additive* API change that doesn't break existing scaffolded
-  plugins. Goes onto the existing `preview/0.15` branch.
-- **Minor (`0.15.x` → `0.16.0`):** new features that change the
-  surface in a forwards-compatible way for new code, or fix a
-  bug in a way that requires a recompile (e.g. ABI change in a
-  format wrapper). Cuts a new `preview/0.16` branch; the old
-  `preview/0.15` branch stays alive for users who haven't migrated.
-- **Major (`0.x` → `1.0`):** deferred until the surface settles.
-
-Today truce is on the `0.15.x` train. The current
-`preview/{major}.{minor}` branch stays open for **one minor release
-after the next** — i.e. when `0.16.0` lands, `preview/0.15` keeps
-receiving compat patches until `0.17.0` cuts, then sunsets.
-`preview/0.14` is now sunset-pending: it keeps receiving any
-remaining `0.14.x` hotfixes until `0.16.0` ships, then no more.
+Neither makes judgment calls (semver, changelog prose, hotfix base
+commit) — those stay with the maintainer.
 
 ### One-time setup
 
@@ -95,229 +74,105 @@ gh auth login                   # GitHub web flow
 ```
 
 The crates.io token is scoped to "publish-update" (and "publish-new"
-until both crates have shipped their first version). Both
-credentials live on the maintainer's machine; verify with
+until both crates have shipped their first version). Verify with
 `cat ~/.cargo/credentials.toml | grep token` and `gh auth status`.
 
-### Cutting a release
-
-Two scripts under `dev/scripts/`:
-
-- **`bump.sh`** — opens the version-bump PR from `dev/latest` to
-  `main`. Runs locally. Pre-flight asserts you're on `dev/latest`
-  with a clean tree, then FFs `dev/latest` to `origin/main` to
-  catch any drift from a previous release. If the FF rejects, the
-  script aborts before any version-bump work — usually a sign the
-  previous bump PR was squash-merged instead of rebase-merged.
-- **`release.sh`** — runs *after* the bump PR is merged via
-  "Rebase and merge". Tags from `main`, publishes both crates to
-  crates.io with the inter-publish index-propagation sleep,
-  fast-forwards the preview branch, pushes everything, creates the
-  GitHub Release, and finally FFs `dev/latest` to `main` to close
-  the sync loop. The dev/latest FF is best-effort: if it rejects,
-  the script prints a warning rather than failing (the release has
-  already shipped at that point).
-
-Neither script makes any judgment calls (semver, changelog prose,
-etc.) — those stay with the maintainer.
-
-#### Patch release (most common: 0.15.0 → 0.15.1)
+### Patch / minor / major release
 
 ```sh
 # 1. Bump.
-git checkout dev/latest && git pull --ff-only
-./dev/scripts/bump.sh patch
+./dev/scripts/bump.sh patch       # or `minor` or `major`
 
-# 2. Review + merge the opened PR via the GitHub UI. CI runs across
-#    all three platforms + docs. Diff should be limited to the two
-#    version strings in Cargo.toml (workspace.package + the
-#    truce-shim-types workspace dep) and the matching Cargo.lock
-#    entries — reject anything else. Merge using "Rebase and merge"
-#    — NOT squash. (Branch protection on main should disable squash
-#    so the wrong button isn't available.)
+# 2. Review + merge the opened PR via the GitHub UI. Diff should be
+#    limited to the two version strings in Cargo.toml + Cargo.lock
+#    entries — reject anything else. Any merge style works.
 
 # 3. Publish.
 git checkout main && git pull --ff-only
 ./dev/scripts/release.sh
 
 # 4. Smoke-test from a clean install.
-cargo install --force cargo-truce --version 0.15.1
+cargo install --force cargo-truce --version <X.Y.Z>
 cargo truce --help
 ```
 
-Total wall-clock: ~5 minutes of maintainer attention spread over
-~30 minutes (CI runs dominate).
+### Pre-release builds
 
-#### Minor release (new train: 0.15.x → 0.16.0)
-
-Same flow, with one extra step between merge and `release.sh`: cut
-the new preview branch from `main`, since `release.sh` assumes the
-branch already exists.
+For RCs (`v1.0.0-rc.1`, etc.), pass the explicit version to
+`bump.sh`:
 
 ```sh
-# 1. Bump.
-./dev/scripts/bump.sh minor
+./dev/scripts/bump.sh 1.0.0-rc.1
+# review, merge, ./dev/scripts/release.sh — ships v1.0.0-rc.1
+./dev/scripts/bump.sh 1.0.0-rc.2
+# ...
+./dev/scripts/bump.sh 1.0.0       # finalize
+```
 
-# 2. Review + merge.
+Cargo handles SemVer pre-release semantics — `tag = "v1.0.0-rc.1"`
+resolves to that specific pre-release, and downstream consumers
+don't get pre-releases via `version = "1.0"` requirements unless
+they opt in.
 
-# 3. Cut the new preview branch BEFORE release.sh.
+### Hotfix release
+
+Same flow as a patch release, with a different starting commit.
+Branch off the tag you want to fix, apply the fix, bump version
+manually (since `bump.sh` would compute from `main`'s current
+version, not the older tag), PR, merge, then `release.sh`.
+
+```sh
+# 1. Branch off the tag.
+git checkout -b hotfix/0.15.4-loader-crash v0.15.3
+
+# 2. Apply the fix and bump.
+$EDITOR crates/truce-loader/...
+git commit -am "Fix: loader crash on AAX session reload"
+sed -i '' 's/"0.15.3"/"0.15.4"/g' Cargo.toml
+cargo check --workspace
+git commit -am "Release v0.15.4"
+git push -u origin hotfix/0.15.4-loader-crash
+
+# 3. Open the PR. Base depends on whether the fix should also flow
+#    forward to current main:
+#       --base main             — typical (fix flows forward)
+#       --base v0.15.3          — back-train only (rare; tags as base
+#                                 require enabling on the repo)
+gh pr create --base main --title "Hotfix v0.15.4"
+
+# 4. Review + merge.
+
+# 5. release.sh from main.
 git checkout main && git pull --ff-only
-git branch preview/0.16 main          # main HEAD = v0.16.0 commit
-
-# 4. Publish.
 ./dev/scripts/release.sh
 
-# 5. Mark the previous train as sunset-pending in CHANGELOG. The
-#    branch keeps receiving 0.15.x patches for one minor cycle
-#    (i.e. until 0.17.0 cuts).
+# 6. Clean up.
+git push origin --delete hotfix/0.15.4-loader-crash
 ```
-
-Don't delete `preview/0.15` — users still have
-`branch = "preview/0.15"` in their `Cargo.toml`. Sunset by stopping
-new patches, not by removing the ref.
-
-### Hotfixes
-
-`bump.sh`'s pre-flight rejects anything other than `dev/latest`, so
-hotfixes are still manual. Branches from the existing release line,
-applied via PR, version bump + tag happen on the release branch:
-
-Example: shipping a fix on the now-sunset-pending `preview/0.14`
-train (last release was `0.14.3`):
-
-```sh
-# 1. Branch off the release line for the fix.
-git checkout preview/0.14 && git pull --ff-only
-git checkout -b hotfix/0.14.4-loader-crash
-
-# 2. Apply the minimal fix; resist scope creep — anything beyond the
-#    bug should land on dev/latest and wait for the next minor.
-$EDITOR crates/truce-loader/...
-git commit -am "Fix: loader crash on AAX session reload (#1234)"
-
-# 3. Bump (single sed, same shape bump.sh would use).
-sed -i '' 's/"0.14.3"/"0.14.4"/g' Cargo.toml
-cargo check --workspace
-git commit -am "Release v0.14.4"
-git push -u origin hotfix/0.14.4-loader-crash
-
-# 4. Open PR targeting preview/0.14. Review + merge via merge-commit.
-gh pr create --base preview/0.14 --title "Hotfix v0.14.4"
-
-# 5. After merge, run release.sh from preview/0.14.
-git checkout preview/0.14 && git pull --ff-only
-./dev/scripts/release.sh      # tags + publishes + FFs
-
-# 6. Backport the fix commit (NOT the version bump) to dev/latest.
-git checkout dev/latest && git pull --ff-only
-git cherry-pick <fix-commit-sha>      # not the "Release v0.14.4" commit
-git push origin dev/latest
-
-# 7. Clean up the hotfix branch.
-git branch -d hotfix/0.14.4-loader-crash
-git push origin --delete hotfix/0.14.4-loader-crash
-```
-
-`release.sh` reads the version from `Cargo.toml` and derives the
-train name from it, so running it from `preview/0.14` correctly tags
-`v0.14.4` and pushes to `preview/0.14`. The script's first two lines
-(`git checkout main && git pull --ff-only`) need to be skipped or
-the script needs a one-line edit for the hotfix — accept that
-friction or write a `hotfix.sh` variant once you've shipped one and
-felt it.
 
 ### When release.sh fails partway
 
-The script is linear, not idempotent. Recovery depends on which step
-failed:
+`release.sh` is idempotent — **re-run it.** Each step checks if it's
+already done (tag on origin, crate on crates.io, GitHub Release
+exists) and skips ahead. Almost any partial-failure recovery is just
+re-running the script.
 
-- **Before any `cargo publish`** — nothing irreversible happened.
-  Delete the local tag (`git tag -d vX.Y.Z`), fix, re-run.
-- **After `truce-shim-types` publish, before `cargo-truce` publish** —
-  shim-types is now permanent on crates.io at this version. Either
-  retry just the cargo-truce publish (typical: index-lag failure;
-  wait a minute and re-run `cargo publish -p cargo-truce`), or yank
-  shim-types and bump to a new patch end-to-end.
-- **After both publishes, before push** — no user-visible state yet
-  (no tag pushed, no preview-branch FF, no GitHub Release). Run the
-  remaining steps manually: `git push origin main preview/X.Y vX.Y.Z`
-  then `gh release create vX.Y.Z --generate-notes`.
-- **`dev/latest` sync fails (warning, not an error)** — release
-  itself succeeded. The FF rejection means the rebase-and-merge
-  invariant was violated upstream (someone squash-merged a previous
-  bump PR). Don't force-push `dev/latest`. Investigate which PR
-  broke the rule, agree with co-maintainers on the fix (typically:
-  re-create dev/latest from main and pick up any unique commits via
-  cherry-pick), and tighten branch protection so the wrong merge
-  style can't happen again.
-- **`cargo install` fails post-publish** — yank
+The exceptions:
+
+- **Cargo.toml metadata gap surfaces during `cargo publish`** — fix
+  on a feature branch + PR + merge, then delete the local tag
+  (`git tag -d vX.Y.Z`) before re-running release.sh so it re-tags
+  HEAD with the fix.
+- **`cargo install` fails post-publish** — yank the broken version
   (`cargo yank -p cargo-truce --version X.Y.Z`) and bump-and-release
   again. crates.io versions are immutable.
-
-### What scaffolded plugins resolve to
-
-After the `git push`, a user's `Cargo.toml` resolves as:
-
-| Pin form (in user's `Cargo.toml`) | Resolves to |
-|---|---|
-| `git = "https://github.com/truce-audio/truce"` | latest commit on `main` (no pin — every `cargo update` moves) |
-| `git = "...", tag = "v0.16.1"` | exact tag, immutable (**scaffold default**) |
-| `git = "...", rev = "<sha>"` | exact commit, immutable |
-| `git = "...", branch = "preview/X.Y"` | latest patch on the `X.Y` preview train (auto-tracks; stops at the next minor) |
-| `git = "...", branch = "release/X.Y"` | latest patch on the `X.Y` stable train (post-1.0; auto-tracks; stops at the next minor) |
-
-`cargo truce new` emits the **tag** form, pinned to the current
-patch:
-
-```toml
-truce = { git = "https://github.com/truce-audio/truce", tag = "v0.16.1" }
-```
-
-The tag pin is reproducible by default — a fresh `cargo build`
-resolves to the exact same SHAs every time. Users who want
-auto-tracking on a minor train can manually swap to
-`branch = "preview/X.Y"` after scaffolding; the train branch still
-exists for that purpose.
-
-The tag is derived at scaffold time from `cargo-truce`'s version
-(which inherits from `[workspace.package].version`). When the
-workspace bumps from 0.16.0 to 0.16.1, scaffolds built from the new
-`cargo-truce` automatically emit `tag = "v0.16.1"` — no parallel
-edit to `scaffold.rs` required.
-
-### Tag hygiene
-
-- **Annotated tags only** (`git tag -a`), never lightweight. Annotated
-  tags carry a tagger identity, date, and message; they show up in
-  `git describe` and GitHub's release UI; they survive
-  `git push --tags`. Lightweight tags don't.
-- **Never force-move a tag.** Once `v0.14.2` is pushed it's
-  immutable. If the release is broken, cut `v0.14.3` with the fix —
-  forcing a tag breaks every user who already pinned to it.
-- **Sign tags** (`git tag -s`) once a release-signing key is set up.
-  Not blocking pre-1.0.
-
-### Branch hygiene
-
-- **Fast-forward only.** The release branch is a moving pointer at
-  the *latest patch tag* on its train. `git merge --ff-only` is the
-  invariant; a merge that wouldn't fast-forward indicates drift
-  (handled by the hotfix workflow above), not a code-review situation
-  to resolve on the branch.
-- **Never delete a release branch.** Once a user pins to it, the
-  ref is part of the project's public API. Sunsetting means stopping
-  pushes, not removing the branch.
-- **Don't squash-merge into release branches.** Always preserve the
-  exact tagged commit so `git log preview/0.14 --first-parent` reads
-  as a clean list of releases.
 
 ### What gets published to crates.io
 
 `cargo-truce` is the one crate users `cargo install`, so it lives on
-crates.io. The framework crates (`truce`, `truce-gui`, format
-wrappers, etc.) stay git-only — they transitively depend on
-`baseview`, which is git-only — and scaffolded plugins consume them
-via the git ref + release-branch pin documented above.
+crates.io. Framework crates (`truce`, `truce-gui`, format wrappers,
+etc.) stay git-only — they transitively depend on `baseview`, which
+is git-only — and scaffolded plugins consume them via tag pins.
 
 | Crate | Why on crates.io |
 |---|---|
@@ -332,31 +187,57 @@ this repo, it joins the publish list (and must publish before
 
 Things the scripts don't decide:
 
-- [ ] Patch vs. minor — semver judgment about whether the change is
-      additive on the existing train or breaking enough to need a
-      new train
+- [ ] Patch vs. minor vs. major — semver judgment about whether the
+      change is additive, breaking, or a rewrite
 - [ ] CHANGELOG entry written before bump (the bump PR carries it)
 - [ ] CI green on all three platforms + docs before merging the
       bump PR
-- [ ] For minor releases: new `preview/X.Y` branch cut from `main`
-      *before* `release.sh`
-- [ ] For minor releases: previous train marked sunset-pending in
-      CHANGELOG
-- [ ] For hotfixes: fix commit cherry-picked back to `dev/latest`
-      (without it, the next minor regresses the fix)
-- [ ] After release: `cargo install --force cargo-truce` smoke-tested
+- [ ] For hotfixes: which tag / commit to branch from
 - [ ] After release: GitHub Release auto-generated notes lightly
       edited if anything significant got buried in the PR list
 
-What `bump.sh` checks: clean tree, on `dev/latest`, remote up to
-date, **`dev/latest` fast-forwards to `origin/main`** (catches drift
-from a squash-merged previous bump), version strings in `Cargo.toml`
-correctly bumped together, `Cargo.lock` refreshed, branch + PR
-opened.
+What `bump.sh` checks: clean working tree, version strings in
+`Cargo.toml` correctly bumped together, `Cargo.lock` refreshed,
+branch + PR opened (or surfaces the existing PR if one's open).
 
-What `release.sh` checks: on `main`, version drift between the two
-`Cargo.toml` strings, no pre-existing local tag with this version,
-`truce-shim-types --dry-run` (catches metadata gaps before the
-immutable upload), inter-publish 30s sleep, FF preview branch only
-after both publishes succeed, **dev/latest FFs to main at the end**
-(warns rather than fails if the FF rejects).
+What `release.sh` checks: version drift between the two `Cargo.toml`
+strings, idempotent skip for tag (already pushed), publishes
+(already on crates.io), and Release (already exists). Inter-publish
+30s sleep only if shim-types was actually just published.
+
+### What scaffolded plugins resolve to
+
+`cargo truce new` emits the **tag** form, pinned to the current
+patch:
+
+```toml
+truce = { git = "https://github.com/truce-audio/truce", tag = "v0.16.1" }
+```
+
+The tag pin is reproducible by default — a fresh `cargo build`
+resolves to the exact same SHAs every time. Users wanting to upgrade
+edit the tag string by hand (or run a future `cargo truce upgrade`
+helper).
+
+The tag is derived at scaffold time from `cargo-truce`'s version
+(which inherits from `[workspace.package].version`). When
+`cargo-truce` is rebuilt after a workspace bump, new scaffolds emit
+the new tag — no parallel edit to `scaffold.rs` required.
+
+| Pin form (in user's `Cargo.toml`) | Resolves to |
+|---|---|
+| `git = "https://github.com/truce-audio/truce"` | latest commit on `main` (no pin — every `cargo update` moves) |
+| `git = "...", tag = "vX.Y.Z"` | exact tag, immutable (**scaffold default**) |
+| `git = "...", rev = "<sha>"` | exact commit, immutable |
+
+Older scaffolds may pin to `branch = "preview/0.15"` or similar —
+those branches still exist as historical refs and keep resolving,
+but they don't get new patches.
+
+### Tag hygiene
+
+- **Annotated tags only** (`git tag -a`), never lightweight.
+- **Never force-move a tag.** Once `vX.Y.Z` is pushed it's
+  immutable. If a release is broken, cut `vX.Y.(Z+1)` with the fix.
+- **Sign tags** (`git tag -s`) once a release-signing key is set up.
+  Not blocking pre-1.0.

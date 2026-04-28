@@ -3,122 +3,85 @@
 # bump.sh — open a release-bump PR.
 #
 # Usage:
-#   dev/scripts/bump.sh patch                      # X.Y.Z → X.Y.(Z+1)
-#   dev/scripts/bump.sh minor                      # X.Y.Z → X.(Y+1).0
-#   dev/scripts/bump.sh 0.15.0                     # explicit version
-#   dev/scripts/bump.sh patch --release            # use release/ prefix
-#                                                          # (post-1.0 stable line)
+#   dev/scripts/bump.sh patch                # X.Y.Z → X.Y.(Z+1)
+#   dev/scripts/bump.sh minor                # X.Y.Z → X.(Y+1).0
+#   dev/scripts/bump.sh major                # X.Y.Z → (X+1).0.0
+#   dev/scripts/bump.sh 1.0.0-rc.1           # explicit version (any SemVer)
+#   dev/scripts/bump.sh 0.16.5               # explicit version (e.g., hotfix)
 #
-# Pre-flight: asserts current branch is `dev/latest` with a clean
-# tree, pulls latest, then FFs dev/latest to origin/main (catches
-# drift from a squash-merged previous bump PR — see release.md
-# "Branch sync model").
+# Branches off origin/main, bumps both version strings in
+# `Cargo.toml`, refreshes `Cargo.lock`, commits on `bump/vX.Y.Z`,
+# pushes, opens a PR against `main`. Any merge style works — the
+# simplified model has no long-lived branches that need SHA
+# preservation.
 #
-# Then: branches off `dev/latest`, bumps both version strings in
-# `Cargo.toml` (the only two post-deduplication), refreshes
-# `Cargo.lock`, commits on `<prefix>/vX.Y` (a per-minor bump branch,
-# distinct from the train `<prefix>/X.Y` by the `v` prefix), pushes,
-# and opens a PR against `main`. The PR must be merged using GitHub's
-# "Rebase and merge" — squash-merging breaks the FF invariant.
-# Re-running on the same minor (e.g., 0.15.1 → 0.15.2 after a
-# previous bump merged) reuses the same branch name; the local
-# branch is reset to the new commit.
-#
-# Prefix selection:
-#   --preview (default)  pre-1.0 trains and post-1.0 pre-release testing
-#   --release            post-1.0 stable trains
-# Pre-1.0 always uses preview/. Post-1.0, both `preview/X.Y` and
-# `release/X.Y` may coexist (preview/ for the next minor's RC line,
-# release/ for the current stable). The flag picks which one the bump
-# targets.
-#
-# Does NOT tag, push to main, or publish. Run `release.sh` from
-# `main` after the PR is reviewed and merged.
+# Idempotent: re-running with the same version resets the bump
+# branch to a fresh state and force-pushes. Re-opening the PR is a
+# no-op if one's already open for the branch.
 
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-BUMP=""
-PREFIX="preview"
-
-for arg in "$@"; do
-    case "$arg" in
-        --preview) PREFIX="preview" ;;
-        --release) PREFIX="release" ;;
-        patch|minor) BUMP="$arg" ;;
-        *.*.*) BUMP="$arg" ;;
-        *)
-            echo "Unknown argument: $arg" >&2
-            echo "Usage: bump.sh [--preview|--release] patch | minor | X.Y.Z" >&2
-            exit 1
-            ;;
-    esac
-done
+BUMP="${1:-}"
 
 if [[ -z "$BUMP" ]]; then
-    echo "Usage: bump.sh [--preview|--release] patch | minor | X.Y.Z" >&2
+    echo "Usage: bump.sh patch | minor | major | <X.Y.Z>" >&2
     exit 1
 fi
 
 # Pre-flight ------------------------------------------------------------------
 
-current_branch="$(git symbolic-ref --short HEAD)"
-if [[ "$current_branch" != "dev/latest" ]]; then
-    echo "Error: must be on dev/latest (currently on $current_branch)" >&2
-    exit 1
-fi
-
+echo "→ pre-flight: clean working tree"
 if ! git diff --quiet || ! git diff --cached --quiet; then
     echo "Error: working tree is dirty — commit or stash first" >&2
     exit 1
 fi
 
-git pull --ff-only
-
-# Catch dev/latest drift from main before any bump work.
-# Under the "rebase-and-merge bump PRs" rule, dev/latest is always
-# reachable from main, so this FF should always succeed. If it
-# rejects, someone squash-merged the previous bump PR (or
-# something equivalent) — investigate before doing anything else,
-# don't force.
-git fetch origin main
-if ! git merge --ff-only origin/main; then
-    echo >&2
-    echo "Error: dev/latest can't fast-forward to origin/main." >&2
-    echo "" >&2
-    echo "This usually means the previous bump PR was squash-merged" >&2
-    echo "instead of rebase-merged. See release.md \"Branch sync" >&2
-    echo "model\" for the recovery — do NOT force-push." >&2
-    exit 1
-fi
-git push origin dev/latest
-
 # Read current version + compute new -----------------------------------------
 
+echo "→ reading current version"
 CURRENT="$(awk -F\" '
     /^\[workspace\.package\]/ { p = 1 }
     p && /^version = / { print $2; exit }
 ' Cargo.toml)"
 
 if [[ -z "$CURRENT" ]]; then
-    echo "Error: could not read [workspace.package].version from Cargo.toml" >&2
+    echo "Error: could not read [workspace.package].version" >&2
     exit 1
 fi
 
-IFS=. read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
 case "$BUMP" in
-    patch) NEW="$MAJOR.$MINOR.$((PATCH + 1))" ;;
-    minor) NEW="$MAJOR.$((MINOR + 1)).0" ;;
-    *.*.*) NEW="$BUMP" ;;
+    patch|minor|major)
+        # Strip pre-release suffix (e.g., -rc.1) before SemVer math.
+        BASE="${CURRENT%%-*}"
+        IFS=. read -r MAJOR MINOR PATCH <<< "$BASE"
+        case "$BUMP" in
+            patch) NEW="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+            minor) NEW="$MAJOR.$((MINOR + 1)).0" ;;
+            major) NEW="$((MAJOR + 1)).0.0" ;;
+        esac
+        ;;
     *)
-        echo "Usage: bump.sh patch | minor | X.Y.Z" >&2
-        exit 1
+        # Explicit version — accept any SemVer string verbatim
+        # (including pre-release suffixes like 1.0.0-rc.1).
+        NEW="$BUMP"
         ;;
 esac
 
-echo "Bumping $CURRENT → $NEW (prefix: $PREFIX)"
+echo
+echo "Bumping $CURRENT → $NEW"
+echo
+
+# Sync main locally + branch off it ------------------------------------------
+
+echo "→ fetching origin/main"
+git fetch origin main
+
+BRANCH="bump/v$NEW"
+
+echo "→ creating bump branch $BRANCH from origin/main"
+git checkout -B "$BRANCH" origin/main
 
 # Edit Cargo.toml -------------------------------------------------------------
 
@@ -132,33 +95,32 @@ sed_inplace() {
 }
 
 # Both occurrences of the version string live in Cargo.toml:
-# `[workspace.package].version` (source of truth, every member crate
-# inherits) and the `truce-shim-types` entry in
-# `[workspace.dependencies]` (load-bearing for crates.io publish).
+# `[workspace.package].version` (source of truth) and the
+# `truce-shim-types` entry in `[workspace.dependencies]`
+# (load-bearing for crates.io publish).
+echo "→ editing Cargo.toml"
 sed_inplace "s/\"$CURRENT\"/\"$NEW\"/g" Cargo.toml
 
 # Refresh Cargo.lock ----------------------------------------------------------
 
+echo "→ refreshing Cargo.lock (cargo check --workspace)"
 cargo check --workspace
 
 # Commit, push, PR ------------------------------------------------------------
 
-# Per-minor bump branch — `<prefix>/v0.15` for any patch on 0.15.x,
-# `<prefix>/v0.16` for the minor bump that initiates the 0.16 train.
-# Named after the NEW version's minor so a minor bump's branch
-# matches the train it's introducing. Distinct from the train branch
-# `<prefix>/X.Y` (no `v` prefix) so they don't collide. Reused across
-# patches on the same minor: `git checkout -B` resets the branch if
-# a previous bump's local branch is still around.
-IFS=. read -r NEW_MAJOR NEW_MINOR _ <<< "$NEW"
-BRANCH="$PREFIX/v$NEW_MAJOR.$NEW_MINOR"
-
-git checkout -B "$BRANCH"
+echo "→ committing"
 git add Cargo.toml Cargo.lock
 git commit -m "Release v$NEW"
+
+echo "→ pushing $BRANCH"
 git push -u --force-with-lease origin "$BRANCH"
 
-gh pr create --base main --title "Release v$NEW" --body "$(cat <<EOF
+echo "→ opening PR (or surfacing existing)"
+existing_pr="$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url' 2>/dev/null || true)"
+if [[ -n "$existing_pr" ]]; then
+    echo "  PR already open: $existing_pr"
+else
+    gh pr create --base main --title "Release v$NEW" --body "$(cat <<EOF
 Mechanical version bump: \`$CURRENT\` → \`$NEW\`.
 
 Diff should be limited to the two version strings in \`Cargo.toml\`
@@ -166,19 +128,15 @@ Diff should be limited to the two version strings in \`Cargo.toml\`
 \`[workspace.dependencies]\`) and the corresponding entries in
 \`Cargo.lock\`. Reject anything else.
 
-**Merge via "Rebase and merge"** — not squash. Squash-merging
-breaks the dev/latest fast-forward invariant (see release.md
-"Branch sync model").
-
-Once CI is green and the PR is merged, ship via:
+After merging, ship via:
 
 \`\`\`sh
-git checkout main
-git pull --ff-only
+git checkout main && git pull --ff-only
 dev/scripts/release.sh
 \`\`\`
 EOF
 )"
+fi
 
 echo
-echo "Bump PR opened. After merge, run dev/scripts/release.sh."
+echo "Bump PR ready. After merge, run dev/scripts/release.sh."
