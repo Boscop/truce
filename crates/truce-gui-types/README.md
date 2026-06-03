@@ -17,23 +17,23 @@ truce-font / fontdue) stays in the renderer crates (`truce-cpu`,
 ## Crate split
 
 ```
-truce-core          ← AudioBuffer, Editor trait, EventList, ...
-   ↓
-truce-gui-types     ← this crate - light data + traits
-   ↓
-truce-plugin        ← PluginLogic / PluginLogic64 / PluginLogicCore
-   ↓                ↘
-truce-gui           truce-egui / truce-iced / truce-slint  ← alt GUI backends
-(BuiltinEditor,     each depends on truce-gui-types but not truce-gui
+truce-core          <- AudioBuffer, Editor trait, EventList, ...
+   |
+truce-gui-types     <- this crate - light data + traits
+   |
+truce-plugin        <- PluginLogic / PluginLogic64 / PluginLogicCore
+   |       \
+truce-gui   truce-egui / truce-iced / truce-slint  <- alt GUI backends
+(BuiltinEditor,   each depends on truce-gui-types but not truce-gui
  baseview)
-   ↓        ↘
-truce-cpu  truce-gpu  ← RenderBackend impls, pulled by truce-gui's
+   |       \
+truce-cpu  truce-gpu  <- RenderBackend impls, pulled by truce-gui's
 (tiny-skia, (wgpu)       cpu (default) / gpu features
  fontdue)
 ```
 
-A slint-only plugin's dep tree contains `truce-plugin →
-truce-gui-types → truce-core` - `tiny-skia`, `baseview`,
+A slint-only plugin's dep tree contains `truce-plugin ->
+truce-gui-types -> truce-core` - `tiny-skia`, `baseview`,
 `fontdue`, `truce-font` don't appear unless the plugin also
 depends on `truce-gui`.
 

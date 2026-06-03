@@ -5,7 +5,7 @@ Built-in GUI runtime for truce plugins.
 ## Overview
 
 Provides a complete widget toolkit that draws knobs, sliders, meters,
-dropdowns, and XY pads straight from your parameter layout — no custom
+dropdowns, and XY pads straight from your parameter layout - no custom
 editor code, no pixel math. The `BuiltinEditor` auto-generates a full UI
 from a `GridLayout`. By default it rasterises on the CPU with tiny-skia;
 opt into GPU rendering (wgpu) with the `gpu` feature.
@@ -25,7 +25,7 @@ plugin only compiles the one it uses:
   [`truce-gpu`](../truce-gpu), pulled in by the `gpu` feature.
 
 The lightweight trait + data surface (`GridLayout`, `RenderBackend`,
-`WidgetType`, `Theme`, …) lives in
+`WidgetType`, `Theme`, ...) lives in
 [`truce-gui-types`](../truce-gui-types) so alt-GUI backends
 (`truce-egui` / `truce-iced` / `truce-slint`) and plugin authors using a
 custom editor don't transitively pull in the rasterisation + windowing

@@ -26,7 +26,7 @@ Three consumers in-tree:
 - **`InputSource`** - `Silence` / `Constant` / `Buffer(Vec<Vec<f32>>)` /
   `Generator(Box<dyn FnMut(usize, f64) -> f32>)`.
 - **`Script`** - sample-accurate sequence of `EventBody`s with a
-  cursor (`note_on`, `note_off`, `set_param`, `wait_ms`, …).
+  cursor (`note_on`, `note_off`, `set_param`, `wait_ms`, ...).
 - **`CaptureSpec`** - what to capture per block (audio, output
   events, meters, param snapshots).
 - **`DriverResult`** - the post-run capture, indexable by channel.

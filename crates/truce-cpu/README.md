@@ -14,7 +14,7 @@ reliable path for screenshot tests.
 `truce-cpu` is an implementation detail of
 [`truce-gui`](../truce-gui): `BuiltinEditor` rasterises the widget tree
 into a tiny-skia pixmap through this backend and blits it to a wgpu
-surface for compositing. Plugins don't depend on `truce-cpu` directly —
+surface for compositing. Plugins don't depend on `truce-cpu` directly -
 it's pulled in by `truce-gui`'s default `cpu` feature. Its peer
 [`truce-gpu`](../truce-gpu) provides the wgpu backend behind the `gpu`
 feature.
@@ -27,7 +27,7 @@ feature.
 
 ## Usage
 
-`truce-cpu` is selected automatically — the default `cpu` feature on
+`truce-cpu` is selected automatically - the default `cpu` feature on
 `truce-gui` enables it, and `editor()` renders through it:
 
 ```rust

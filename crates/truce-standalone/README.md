@@ -19,7 +19,7 @@ notes so you can play sounds immediately.
 ## Key functions
 
 - **`truce_standalone::run::<P>()`** - launches the standalone host for plugin type `P`
-- **`truce_standalone::run_with::<P>(Defaults { … })`** - same, but with plugin-author launch defaults (CLI / env still take precedence)
+- **`truce_standalone::run_with::<P>(Defaults { ... })`** - same, but with plugin-author launch defaults (CLI / env still take precedence)
 
 ## Usage
 

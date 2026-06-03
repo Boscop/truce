@@ -14,7 +14,7 @@ on complex UIs.
 `truce-gpu` is an implementation detail of
 [`truce-gui`](../truce-gui): the `GpuEditor` there wraps the built-in
 widget runtime and renders through this backend. Plugins don't depend on
-`truce-gpu` directly — they enable GPU rendering through `truce-gui`'s
+`truce-gpu` directly - they enable GPU rendering through `truce-gui`'s
 `gpu` feature.
 
 ## Key types
@@ -27,8 +27,8 @@ Opt into GPU rendering by enabling the `gpu` feature on `truce-gui`:
 
 ```toml
 [dependencies]
-truce     = { version = "0.48", features = ["clap"] }
-truce-gui = { version = "0.48", features = ["gpu"] }
+truce     = { version = "0.49", features = ["clap"] }
+truce-gui = { version = "0.49", features = ["gpu"] }
 ```
 
 `truce-gui` pulls in `truce-gpu` transitively and routes the built-in

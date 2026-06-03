@@ -26,7 +26,7 @@ Four flavours, each pinning a different precision combination:
 |---|---|---|---|
 | `prelude` / `prelude32` | `f32` | `f32` | Default - host wire is `f32` everywhere |
 | `prelude64m` | `f32` | `f64` | Stable `f64` intermediate math, narrow on buffer write |
-| `prelude64` | `f64` | `f64` | Wrapper widens host `f32` → plugin `f64` once per block |
+| `prelude64` | `f64` | `f64` | Wrapper widens host `f32` -> plugin `f64` once per block |
 
 Each prelude also defines `pub type AudioBuffer<'a, S = Sample> = ...`,
 so `&mut AudioBuffer` resolves to the prelude's chosen precision
@@ -53,11 +53,11 @@ the conventional pattern.
 
 ```toml
 [dependencies]
-truce = { version = "0.48", features = ["clap"] }
+truce = { version = "0.49", features = ["clap"] }
 ```
 
-(Cargo's caret resolver expands `"0.48"` to `>=0.48.0, <0.49.0`, so
-you'll pick up every `0.48.x` patch release without re-editing. To
+(Cargo's caret resolver expands `"0.49"` to `>=0.49.0, <0.50.0`, so
+you'll pick up every `0.49.x` patch release without re-editing. To
 track an unreleased checkout, swap the line for
 `truce = { git = "https://github.com/truce-audio/truce", branch = "main", features = ["clap"] }`.
 Or just run `cargo truce new` and let the scaffolder write the
@@ -65,6 +65,22 @@ right pin for you.)
 
 ```rust
 use truce::prelude::*;
+// Built-in widget toolkit. `GridLayout` + the `knob` / `widgets` /
+// `meter` / `xy_pad` constructors live in `truce-gui-types::layout`;
+// `IntoLayoutEditor` is the trait that turns a `GridLayout` into a
+// `Box<dyn Editor>` via the default renderer (`truce-cpu`).
+use truce_gui::IntoLayoutEditor;
+use truce_gui_types::layout::{GridLayout, knob, widgets};
+
+// Alias the derive-generated param-id enum so widget constructors
+// can use `P::Gain` instead of `MyParamsParamId::Gain`.
+use MyParamsParamId as P;
+
+#[derive(Params)]
+pub struct MyParams {
+    #[param(name = "Gain", range = "linear(-60, 6)", unit = "dB")]
+    pub gain: FloatParam,
+}
 
 pub struct MyPlugin {
     params: Arc<MyParams>,

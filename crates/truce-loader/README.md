@@ -22,7 +22,7 @@ plugin, in two modes:
 
 Plugin authors don't reach into this crate directly. They write
 a single `impl PluginLogic` (from `truce-plugin`) on their plugin
-struct -- one trait covering both DSP (`reset`, `process`, …) and
+struct -- one trait covering both DSP (`reset`, `process`, ...) and
 GUI (`editor`) -- and `truce::plugin!` emits
 the right `export_*!` call based on the `shell` Cargo feature.
 
@@ -62,11 +62,11 @@ Enable the dynamic shell (hot-reload) during development:
 
 ```toml
 [dependencies]
-truce = { version = "0.48", features = ["shell"] }
+truce = { version = "0.49", features = ["shell"] }
 ```
 
-(Cargo's caret resolver expands `"0.48"` to `>=0.48.0, <0.49.0`,
-so you'll pick up every `0.48.x` patch release without re-editing.
+(Cargo's caret resolver expands `"0.49"` to `>=0.49.0, <0.50.0`,
+so you'll pick up every `0.49.x` patch release without re-editing.
 To track an unreleased checkout, swap for
 `git = "https://github.com/truce-audio/truce", branch = "main"`.)
 

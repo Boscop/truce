@@ -1,13 +1,13 @@
 # truce-loader-tests
 
 Integration-test host for `truce-loader`. Internal to the truce
-workspace — `publish = false`, never goes to crates.io.
+workspace - `publish = false`, never goes to crates.io.
 
 ## Why this crate exists
 
 The integration tests for `truce-loader` need
 `#[derive(Params)]` / `#[derive(State)]`, which expand to
-`::truce::params::*` / `::truce::core::*` paths — so the tests
+`::truce::params::*` / `::truce::core::*` paths - so the tests
 need the umbrella `truce` crate in scope. But `truce` already
 depends on `truce-loader` (for the `truce::plugin!` macro's
 HotShell wiring), and adding `truce` as a `[dev-dependencies]`

@@ -19,7 +19,7 @@ cargo install cargo-truce
 
 ```sh
 cargo truce new my-plugin          # scaffold a single-plugin project (clap+vst3+standalone by default)
-cargo truce new my-plugin --no-standalone  # … without the standalone host bin
+cargo truce new my-plugin --no-standalone  # ... without the standalone host bin
 cargo truce new my-ws --workspace gain reverb  # scaffold a multi-plugin workspace
 cargo truce install                # build + bundle + sign + install (per-user by default)
 cargo truce install --system       # install for all users (sudo / admin)
