@@ -35,6 +35,14 @@
 #     the same name; safe to re-run after re-packaging.
 #   - Other OSes' uploads are untouched.
 #
+# Sub-workspaces:
+#   The vizia / slint / gpu-examples sub-workspaces have their own
+#   `truce.toml` + `target/dist/` (see scripts/recursive-cargo-truce.sh).
+#   `cargo truce package` run inside one writes artifacts there, not to
+#   the root `target/dist/`. This script scans the root plus every
+#   sub-workspace dist, so a `recursive-cargo-truce.sh package` run
+#   uploads all of them in one pass.
+#
 # Pre-reqs:
 #   - The GitHub release `vX.Y.Z` already exists (run
 #     `scripts/release/release.sh` first).
@@ -82,20 +90,40 @@ TAG="v$WS_VERSION"
 # Verify dist contents + release existence
 # ----------------------------------------------------------------------------
 
-DIST_DIR="target/dist"
-if [[ ! -d "$DIST_DIR" ]]; then
-    echo "Error: $TRUCE_ROOT/$DIST_DIR does not exist." >&2
-    echo "       Run \`cargo truce package\` first." >&2
-    exit 1
-fi
+# Dist directories to scan: the root workspace plus each self-contained
+# sub-workspace (vizia / slint / gpu-examples), which package into their
+# own `target/dist/`. Keep in sync with scripts/recursive-cargo-truce.sh.
+# A dir that doesn't exist (sub-workspace not packaged on this run /
+# platform) contributes nothing under `nullglob` rather than erroring.
+DIST_DIRS=(
+    "target/dist"
+    "crates/truce-slint/target/dist"
+    "crates/truce-vizia/target/dist"
+    "crates/truce-gpu-examples/target/dist"
+)
 
 shopt -s nullglob
-dist_files=("$DIST_DIR"/*)
+dist_files=()
+for d in "${DIST_DIRS[@]}"; do
+    dist_files+=("$d"/*)
+done
 shopt -u nullglob
 
 if [[ ${#dist_files[@]} -eq 0 ]]; then
-    echo "Error: $TRUCE_ROOT/$DIST_DIR is empty." >&2
-    echo "       Run \`cargo truce package\` first." >&2
+    echo "Error: no artifacts found in any workspace's target/dist." >&2
+    echo "       Scanned (relative to $TRUCE_ROOT): ${DIST_DIRS[*]}" >&2
+    echo "       Run \`cargo truce package\` (or scripts/recursive-cargo-truce.sh package) first." >&2
+    exit 1
+fi
+
+# Release assets are a flat namespace: two artifacts sharing a basename
+# (across workspaces) would clobber each other on upload. Fail loudly
+# rather than silently dropping one.
+dupes="$(printf '%s\n' "${dist_files[@]}" | while read -r f; do basename "$f"; done | sort | uniq -d)"
+if [[ -n "$dupes" ]]; then
+    echo "Error: duplicate artifact name(s) across workspaces (GitHub assets are flat):" >&2
+    echo "$dupes" | sed 's/^/         /' >&2
+    echo "       Rename the colliding plugin/suite so each artifact is unique." >&2
     exit 1
 fi
 
