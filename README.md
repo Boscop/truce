@@ -94,8 +94,6 @@ CLAP preset-discovery, the AU factory list in Logic, `.vstpreset`, LV2
 cargo truce preset list                   # every preset across factory / user / pack scopes
 cargo truce preset pull                    # harvest presets you saved in your DAW into the library
 cargo truce preset convert in.aupreset out.vstpreset   # re-envelope between any two formats
-cargo truce preset import pack.zip         # a native preset file or a pack zip into your library
-cargo truce preset export pack.zip         # your library out as a shareable per-format pack
 cargo truce preset init                    # stamp uuids into hand-authored .preset files
 ```
 
