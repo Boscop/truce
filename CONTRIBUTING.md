@@ -62,3 +62,40 @@ above grant.
   PRs by name — those rot.
 - Don't add error handling, fallbacks, or validation for scenarios
   that can't happen. Trust internal code.
+
+## Testing
+
+Beyond the gate in [Code quality](#code-quality):
+
+- **DSP / processing changes** — cover them with `truce_test::driver!`
+  scripts (sample-accurate, no host needed). Add to the relevant
+  example crate's tests.
+- **Layout changes** — regenerate the screenshot baselines with
+  `cargo truce screenshot -p <crate> --out <path>`; the screenshot
+  tests gate on a strict pixel diff.
+
+### GUI framework changes
+
+Changes to the GUI framework itself — window embedding, resize, focus,
+DPI, the editor lifecycle — can't be covered by the screenshot tests,
+which pin the built-in editor's pixel output but not its behavior once
+embedded in a host. Verify them by loading a plugin in real DAWs,
+following the tiered matrix below.
+
+- **Tier 1** — must be tested and verified before merge. A bug found
+  here is a blocker.
+- **Tier 2** — should be tested and verified, but whether a given bug
+  blocks the change is open to debate.
+- **Tier 3** — not actively tested. Bugs are accepted as reports and
+  fixed opportunistically.
+
+For the formats a host loads natively (CLAP, VST3, AU, AAX):
+
+| OS | Tier 1 hosts |
+|----|--------------|
+| macOS | Ableton Live, Logic Pro, Pro Tools, Cubase, Bitwig, REAPER, Ardour |
+| Windows | Ableton Live, Pro Tools, Cubase, Bitwig, REAPER, Ardour |
+| Linux | REAPER, Ardour |
+
+Hosts and OSes outside the Tier 1 table fall to Tier 2, except VST2,
+which is Tier 3 everywhere — not actively tested.
