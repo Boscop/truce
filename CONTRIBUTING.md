@@ -92,8 +92,6 @@ following the tiered matrix below.
 - **Tier 3** — not actively tested. Bugs are accepted as reports and
   fixed opportunistically.
 
-For the formats a host loads natively (CLAP, VST3, AU, AAX):
-
 | OS | Tier 1 hosts |
 |----|--------------|
 | macOS | Ableton Live, Logic Pro, Pro Tools, Cubase, Bitwig, REAPER, Ardour |
